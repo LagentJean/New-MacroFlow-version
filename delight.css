@@ -1,0 +1,187 @@
+:root {
+  --ux-spring: cubic-bezier(.2,.82,.25,1);
+  --ux-fast: 150ms;
+  --ux-normal: 280ms;
+}
+
+.ux-ready button,
+.ux-ready [role="button"],
+.ux-ready .camera-button,
+.ux-ready .gallery-button,
+.ux-ready .smart-capture,
+.ux-ready .choice-chip span {
+  touch-action: manipulation;
+  transition: transform var(--ux-fast) var(--ux-spring), filter var(--ux-fast) ease, border-color var(--ux-fast) ease, background-color var(--ux-fast) ease, box-shadow var(--ux-fast) ease;
+}
+
+.ux-ready button:not(:disabled):active,
+.ux-ready [role="button"]:active,
+.ux-ready .camera-button:active,
+.ux-ready .gallery-button:active,
+.ux-ready .smart-capture:active,
+.ux-ready .choice-chip:active span {
+  transform: scale(.972);
+  filter: brightness(.94);
+}
+
+.ux-ready button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.ux-ready button:focus-visible,
+.ux-ready [role="button"]:focus-visible,
+.ux-ready input:focus-visible,
+.ux-ready select:focus-visible,
+.ux-ready .camera-button:focus-within,
+.ux-ready .gallery-button:focus-within,
+.ux-ready .smart-capture:focus-within {
+  outline: 2px solid rgba(191,90,242,.9);
+  outline-offset: 3px;
+}
+
+@media (hover:hover) {
+  .ux-ready button:not(:disabled):hover,
+  .ux-ready [role="button"]:hover,
+  .ux-ready .camera-button:hover,
+  .ux-ready .gallery-button:hover,
+  .ux-ready .smart-capture:hover {
+    filter: brightness(1.08);
+  }
+}
+
+.ux-ripple-host {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.ux-ripple {
+  position: absolute;
+  z-index: 0;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: rgba(255,255,255,.18);
+  transform: scale(0);
+  animation: ux-ripple 520ms ease-out forwards;
+}
+
+.ux-ready .view.active > * {
+  animation: ux-rise var(--ux-normal) var(--ux-spring) both;
+}
+
+.ux-ready .view.active > :nth-child(2) { animation-delay: 28ms; }
+.ux-ready .view.active > :nth-child(3) { animation-delay: 50ms; }
+.ux-ready .view.active > :nth-child(4) { animation-delay: 72ms; }
+.ux-ready .view.active > :nth-child(n+5) { animation-delay: 90ms; }
+
+.ux-ready .onboarding-step.active,
+.ux-ready .training-panel.active {
+  animation: ux-rise 260ms var(--ux-spring) both;
+}
+
+.ux-ready .tab.active span,
+.ux-ready .training-tab.active {
+  animation: ux-pop 300ms var(--ux-spring);
+}
+
+.ux-ready .choice-chip input:checked + span {
+  animation: ux-chip 240ms var(--ux-spring);
+  box-shadow: 0 0 0 1px rgba(191,90,242,.12), 0 7px 20px rgba(191,90,242,.12);
+}
+
+.ux-ready .onboarding-progress span.active {
+  box-shadow: 0 0 10px rgba(48,209,88,.28);
+  transition: background 220ms ease, box-shadow 220ms ease;
+}
+
+.ux-ready .progress-fill {
+  transition: width 520ms var(--ux-spring);
+}
+
+.ux-ready .rest-timer:not(.hidden),
+.ux-ready .recommendation:not(.hidden),
+.ux-ready .status-box:not(.hidden) {
+  animation: ux-soft-pop 260ms var(--ux-spring) both;
+}
+
+.ux-enter {
+  animation: ux-insert 300ms var(--ux-spring) both !important;
+}
+
+.ux-success-pulse {
+  animation: ux-success 520ms var(--ux-spring) !important;
+}
+
+.ux-shake {
+  animation: ux-shake 330ms ease !important;
+}
+
+.ux-ready .toast.show {
+  animation: ux-toast 340ms var(--ux-spring) both;
+}
+
+@keyframes ux-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ux-pop {
+  0% { transform: scale(.9); }
+  65% { transform: scale(1.09); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ux-soft-pop {
+  from { opacity: 0; transform: translateY(5px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ux-chip {
+  0% { transform: scale(.96); }
+  68% { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ux-ripple {
+  to { opacity: 0; transform: scale(16); }
+}
+
+@keyframes ux-insert {
+  from { opacity: 0; transform: translateY(7px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ux-success {
+  0%,100% { transform: scale(1); }
+  45% { transform: scale(1.045); filter: brightness(1.14); }
+}
+
+@keyframes ux-shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
+@keyframes ux-toast {
+  from { opacity: 0; transform: translate(-50%,18px) scale(.94); }
+  65% { opacity: 1; transform: translate(-50%,-2px) scale(1.02); }
+  to { opacity: 1; transform: translate(-50%,0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto; }
+  .ux-ready *,
+  .ux-ready *::before,
+  .ux-ready *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+  .ux-ripple { display: none; }
+}

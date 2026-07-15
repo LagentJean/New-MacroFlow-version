@@ -1,0 +1,314 @@
+.exercise-technique-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: grid;
+  align-items: end;
+  padding: max(12px, env(safe-area-inset-top)) 0 0;
+  background: rgba(0, 0, 0, .76);
+  backdrop-filter: blur(12px);
+}
+
+.exercise-technique-modal.hidden {
+  display: none;
+}
+
+.exercise-technique-dialog {
+  width: min(100%, 620px);
+  max-height: min(92dvh, 920px);
+  margin: 0 auto;
+  overflow: auto;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  border: 1px solid #34343a;
+  border-bottom: 0;
+  border-radius: 25px 25px 0 0;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(72, 146, 255, .2), transparent 28%),
+    linear-gradient(160deg, #1d1d22, #101012 58%);
+  box-shadow: 0 -22px 70px rgba(0, 0, 0, .5);
+}
+
+.technique-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.technique-pattern {
+  display: inline-flex;
+  padding: 5px 8px;
+  border: 1px solid rgba(65, 156, 255, .35);
+  border-radius: 99px;
+  background: rgba(65, 156, 255, .1);
+  color: #90c4ff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.technique-title-row h2 {
+  margin: 7px 0 0;
+  font-size: 27px;
+  line-height: 1.04;
+  letter-spacing: -.8px;
+}
+
+.technique-close {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #3b3b41;
+  border-radius: 50%;
+  background: #28282d;
+  color: #fff;
+  font-size: 16px;
+}
+
+.technique-goal {
+  margin: 12px 0;
+  color: #c9c9d0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.technique-level-note {
+  margin: 11px 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 159, 10, .26);
+  border-radius: 13px;
+  background: rgba(255, 159, 10, .08);
+  color: #f2c16f;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.exercise-technique-dialog section {
+  margin-top: 13px;
+  padding: 13px;
+  border: 1px solid #303036;
+  border-radius: 16px;
+  background: rgba(19, 19, 22, .85);
+}
+
+.exercise-technique-dialog h3 {
+  margin: 0 0 9px;
+  font-size: 12px;
+  letter-spacing: -.1px;
+}
+
+.exercise-technique-dialog ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 17px;
+  color: #c6c6cc;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.technique-cues {
+  border-color: rgba(65, 156, 255, .3) !important;
+  background: linear-gradient(140deg, rgba(65, 156, 255, .12), rgba(191, 90, 242, .08)) !important;
+}
+
+.technique-cues > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.technique-cues article {
+  min-width: 0;
+  padding: 10px 8px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 13px;
+  background: rgba(7, 10, 16, .56);
+}
+
+.technique-cues article span,
+.technique-cues article b {
+  display: block;
+}
+
+.technique-cues article span {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 7px;
+  border-radius: 50%;
+  background: #419cff;
+  color: #06101b;
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 20px;
+  text-align: center;
+}
+
+.technique-cues article b {
+  color: #f1f5ff;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.technique-specific {
+  border-color: rgba(191, 90, 242, .32) !important;
+  background: rgba(191, 90, 242, .08) !important;
+}
+
+.technique-specific h3 {
+  color: #e2b6f7;
+}
+
+.technique-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.technique-columns section {
+  min-width: 0;
+}
+
+.technique-mistakes h3 {
+  color: #ffbf66;
+}
+
+.technique-breathing p,
+.technique-safety p {
+  margin: 0;
+  color: #c6c6cc;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.technique-safety {
+  border-color: rgba(255, 69, 58, .36) !important;
+  background: rgba(255, 69, 58, .08) !important;
+}
+
+.technique-safety h3 {
+  color: #ff817a;
+}
+
+.technique-disclaimer {
+  margin: 13px 2px;
+  color: #86868f;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.technique-ready {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-radius: 15px;
+  background: linear-gradient(120deg, #419cff, #7d5cff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 12px 30px rgba(15, 85, 190, .28);
+}
+
+.technique-quality {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #303036;
+  border-radius: 14px;
+  background: #121214;
+}
+
+.technique-quality > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #a2a2aa;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.technique-quality-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.technique-quality-button {
+  min-height: 36px;
+  padding: 5px;
+  border: 1px solid #36363c;
+  border-radius: 10px;
+  background: #202024;
+  color: #aaaab2;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.technique-quality-button[aria-pressed="true"][data-technique-quality="solid"] {
+  border-color: rgba(48, 209, 88, .55);
+  background: rgba(48, 209, 88, .16);
+  color: #8be5a1;
+}
+
+.technique-quality-button[aria-pressed="true"][data-technique-quality="uncertain"],
+.technique-quality-button[aria-pressed="true"][data-technique-quality="degraded"] {
+  border-color: rgba(255, 159, 10, .55);
+  background: rgba(255, 159, 10, .13);
+  color: #ffc36a;
+}
+
+.technique-quality-button[aria-pressed="true"][data-technique-quality="pain"] {
+  border-color: rgba(255, 69, 58, .65);
+  background: rgba(255, 69, 58, .16);
+  color: #ff8983;
+}
+
+.technique-pain-warning {
+  display: block;
+  margin-top: 8px;
+  padding: 9px;
+  border-radius: 10px;
+  background: rgba(255, 69, 58, .12);
+  color: #ff9994;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.technique-pain-warning.hidden {
+  display: none;
+}
+
+.logged-set-technique {
+  display: inline-block;
+  margin-top: 2px;
+  color: #9d9da6;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.logged-set-technique.solid { color: #7fe096; }
+.logged-set-technique.uncertain,
+.logged-set-technique.degraded { color: #efb75f; }
+.logged-set-technique.pain { color: #ff817a; }
+
+@media (min-width: 620px) {
+  .exercise-technique-modal {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .exercise-technique-dialog {
+    border-bottom: 1px solid #34343a;
+    border-radius: 25px;
+  }
+}
+
+@media (max-width: 390px) {
+  .technique-title-row h2 { font-size: 24px; }
+  .technique-columns { grid-template-columns: 1fr; }
+  .technique-cues > div { grid-template-columns: 1fr; }
+  .technique-cues article { display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 7px; }
+  .technique-cues article span { margin: 0; }
+  .technique-quality-options { grid-template-columns: 1fr 1fr; }
+}

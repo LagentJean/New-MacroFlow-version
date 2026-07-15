@@ -1,0 +1,6 @@
+MACROFLOW v32 — GITHUB PAGES
+
+À la racine du nouveau dépôt, téléverser TOUS les éléments présents dans ce dossier.
+GitHub doit afficher directement index.html, sw.js, manifest.webmanifest, models/ et vendor/.
+Ne téléversez pas le fichier ZIP lui-même.
+GitHub Pages : Settings > Pages > Deploy from a branch > main > /(root).

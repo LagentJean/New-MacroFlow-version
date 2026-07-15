@@ -1,0 +1,584 @@
+.session-dashboard {
+  position: sticky;
+  top: 7px;
+  z-index: 24;
+  margin-bottom: 10px;
+  padding: 15px;
+  border-color: rgba(191, 90, 242, .32);
+  background: rgba(24, 20, 27, .94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .28);
+}
+
+.session-dashboard .session-head {
+  margin-bottom: 11px;
+}
+
+.session-dashboard .session-head h3 {
+  margin: 3px 0 0;
+  font-size: 20px;
+}
+
+.session-overall {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.session-overall strong,
+.session-overall small {
+  display: block;
+}
+
+.session-overall strong {
+  font-size: 12px;
+}
+
+.session-overall small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.session-overall > span {
+  color: #dca4f7;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.session-overall-track {
+  height: 5px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #303034;
+}
+
+.session-overall-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #bf5af2, #30d158);
+  transition: width .24s ease;
+}
+
+.session-exercise-nav {
+  display: flex;
+  gap: 6px;
+  margin-top: 11px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.session-exercise-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.session-exercise-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  max-width: 156px;
+  padding: 7px 9px;
+  border: 1px solid #35353a;
+  border-radius: 11px;
+  background: #151517;
+  color: #96969e;
+  font-size: 9px;
+  font-weight: 780;
+}
+
+.session-exercise-pill b {
+  display: grid;
+  flex: 0 0 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 6px;
+  background: #29292d;
+  font-size: 8px;
+}
+
+.session-exercise-pill span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-exercise-pill.active {
+  border-color: rgba(191, 90, 242, .6);
+  background: rgba(191, 90, 242, .15);
+  color: #f0d5fc;
+}
+
+.session-exercise-pill.active b {
+  background: #bf5af2;
+  color: #fff;
+}
+
+.session-exercise-pill.complete {
+  border-color: rgba(48, 209, 88, .3);
+  color: #79df93;
+}
+
+.session-exercise-pill.complete b {
+  background: #30d158;
+  color: #061108;
+}
+
+.session-exercise-pill.skipped {
+  opacity: .55;
+  text-decoration: line-through;
+}
+
+.focused-exercise-card {
+  min-height: 390px;
+  padding: 17px;
+  border-color: rgba(191, 90, 242, .3);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(191, 90, 242, .15), transparent 34%),
+    linear-gradient(155deg, #1c191f, #141416 58%);
+}
+
+.focused-exercise-card .exercise-session-head b {
+  display: block;
+  font-size: 22px;
+  line-height: 1.08;
+  letter-spacing: -.55px;
+}
+
+.focused-exercise-card .load-tip {
+  flex: 0 0 auto;
+  font-size: 10px;
+}
+
+.exercise-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin: 10px 0 4px;
+}
+
+.exercise-quick-actions button,
+.resume-exercise-button {
+  min-height: 39px;
+  border: 1px solid #36363b;
+  border-radius: 12px;
+  background: #202023;
+  color: #c7c7cd;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.exercise-quick-actions .skip-exercise-button {
+  color: #e6b56b;
+}
+
+.exercise-quick-actions .technique-guide-button {
+  border-color: rgba(65, 156, 255, .38);
+  background: rgba(65, 156, 255, .1);
+  color: #8fc4ff;
+}
+
+.resume-exercise-button {
+  width: 100%;
+  margin-top: 12px;
+  border-color: rgba(48, 209, 88, .35);
+  background: rgba(48, 209, 88, .1);
+  color: #83e39a;
+}
+
+.focused-exercise-card .set-entry.with-rir {
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.focused-exercise-card .set-entry.with-rir input {
+  min-width: 0;
+  padding: 13px 8px;
+  font-size: 17px;
+  text-align: center;
+}
+
+.focused-exercise-card .set-entry.with-rir button {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  font-size: 14px;
+}
+
+.set-entry-heading {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 14px;
+  color: #97979f;
+  font-size: 9px;
+  text-align: center;
+}
+
+.logged-sets {
+  margin-top: 13px;
+}
+
+.focused-exercise-card .logged-set {
+  align-items: center;
+  min-height: 45px;
+  margin-top: 7px;
+  padding: 8px 9px 8px 11px;
+}
+
+.logged-set-value {
+  margin-left: auto;
+  text-align: right;
+}
+
+.logged-set-actions {
+  display: flex;
+  gap: 5px;
+  margin-left: 8px;
+}
+
+.logged-set-actions button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: #303034;
+  color: #d6d6db;
+}
+
+.logged-set-editing {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(191, 90, 242, .42);
+}
+
+.logged-set-editing input,
+.logged-set-editing select {
+  min-width: 0;
+  width: 100%;
+  padding: 10px 6px;
+  border: 1px solid #3a3a3f;
+  border-radius: 10px;
+  background: #0e0e10;
+  color: #fff;
+  font-size: 15px;
+  text-align: center;
+}
+
+.logged-set-editing .edit-set-technique {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  text-align: left;
+}
+
+.logged-set-edit-actions {
+  display: grid;
+  grid-template-columns: .8fr 1fr 1.25fr;
+  grid-column: 1 / -1;
+  gap: 5px;
+}
+
+.logged-set-edit-actions button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: #29292d;
+  color: #d7d7dc;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.logged-set-edit-actions .delete-set-button {
+  color: #ff7a72;
+}
+
+.logged-set-edit-actions .save-set-button {
+  background: #bf5af2;
+  color: #fff;
+}
+
+.exercise-skipped-state {
+  margin: 18px 0 8px;
+  padding: 18px 14px;
+  border: 1px dashed #3b3b40;
+  border-radius: 15px;
+  color: #9d9da5;
+  text-align: center;
+}
+
+.exercise-skipped-state span {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 25px;
+}
+
+.exercise-skipped-state b,
+.exercise-skipped-state small {
+  display: block;
+}
+
+.exercise-skipped-state small {
+  margin-top: 5px;
+  line-height: 1.35;
+}
+
+.session-navigation {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.session-navigation button {
+  min-height: 43px;
+  border: 1px solid #35353a;
+  border-radius: 13px;
+  background: #19191c;
+  color: #d0d0d5;
+  font-weight: 800;
+}
+
+.session-navigation button:disabled {
+  opacity: .35;
+}
+
+.session-finish-button {
+  margin: 10px 0 2px;
+}
+
+.rest-timer {
+  gap: 10px;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  padding: 11px 12px;
+}
+
+.rest-timer-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 68px;
+}
+
+.rest-timer-copy span {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.rest-timer-actions {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.rest-timer-actions button {
+  min-width: 50px;
+  padding: 8px 7px;
+  font-size: 9px;
+}
+
+.session-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 155;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(0, 0, 0, .76);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.session-sheet.hidden {
+  display: none;
+}
+
+.session-sheet-dialog {
+  width: min(100%, 520px);
+  max-height: min(82vh, 720px);
+  overflow: auto;
+  padding: 10px 16px max(18px, env(safe-area-inset-bottom));
+  border: 1px solid #3c3c41;
+  border-radius: 24px 24px 20px 20px;
+  background: linear-gradient(155deg, #211725, #131315 55%);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .6);
+}
+
+.session-sheet-handle {
+  width: 40px;
+  height: 5px;
+  margin: 0 auto 15px;
+  border-radius: 99px;
+  background: #4a4a50;
+}
+
+.session-sheet h2 {
+  margin: 6px 0 7px;
+  font-size: 25px;
+}
+
+.session-sheet p {
+  margin: 0 0 13px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.session-sheet-search {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #3b3b40;
+  border-radius: 13px;
+  background: #0e0e10;
+  color: #fff;
+  font-size: 16px;
+}
+
+.replace-exercise-results {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 12px 0;
+}
+
+.replace-exercise-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #35353a;
+  border-radius: 13px;
+  background: #18181b;
+  color: #fff;
+  text-align: left;
+}
+
+.replace-exercise-option b,
+.replace-exercise-option small {
+  display: block;
+}
+
+.replace-exercise-option small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.replace-exercise-option > span:last-child {
+  color: #d79cf4;
+  font-size: 20px;
+}
+
+.session-sheet-cancel {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 13px;
+  background: #29292d;
+  color: #fff;
+  font-weight: 800;
+}
+
+.finish-session-dialog {
+  text-align: center;
+}
+
+.finish-session-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 10px;
+  place-items: center;
+  border-radius: 17px;
+  background: rgba(255, 159, 10, .12);
+  font-size: 27px;
+}
+
+.finish-session-details {
+  margin: 13px 0;
+  padding: 12px;
+  border: 1px solid #343439;
+  border-radius: 14px;
+  background: #121214;
+  color: #d1d1d6;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.finish-session-actions {
+  display: grid;
+  gap: 7px;
+}
+
+.finish-session-actions button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 13px;
+  font-weight: 850;
+}
+
+#continueSessionBtn {
+  background: linear-gradient(135deg, #bf5af2, #7437ec);
+  color: #fff;
+}
+
+#confirmFinishSessionBtn {
+  background: #29292d;
+  color: #ffba75;
+}
+
+@media (min-width: 600px) {
+  .session-sheet {
+    align-items: center;
+  }
+
+  .session-sheet-dialog {
+    border-radius: 24px;
+  }
+}
+
+@media (max-width: 360px) {
+  .exercise-quick-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .exercise-quick-actions .technique-guide-button {
+    grid-column: 1 / -1;
+  }
+
+  .rest-timer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rest-timer-copy {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .rest-timer-actions {
+    width: 100%;
+  }
+
+  .rest-timer-actions button {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-overall-track span {
+    transition: none;
+  }
+}
