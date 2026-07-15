@@ -31,7 +31,7 @@
     const circumference=2*Math.PI*58, segment=circumference/4, gap=8;
     ['calories','protein','carbs','fat'].forEach((k,i)=>{ const a=document.querySelector(`.arc-${k}`); if(!a)return; const fill=(segment-gap)*pct(t[k],g[k]); a.style.strokeDasharray=`${fill} ${circumference-fill}`; a.style.strokeDashoffset=String(-(i*segment)); a.setAttribute('aria-label',`${k} ${Math.round(pct(t[k],g[k])*100)} %`); });
     document.querySelectorAll('.macro-card').forEach((c,i)=>{ const k=['calories','protein','carbs','fat'][i]; if(k)c.style.setProperty('--macro-glow',`${colors[k]}22`); });
-    const score=Number($('scoreValue')?.textContent)||0; if(initialized&&score>=90&&lastScore<90)celebrate(); lastScore=score; initialized=true;
+    const score=Number($('scoreValue')?.textContent || document.querySelector('.score-card')?.dataset.dailyScore)||0; if(initialized&&score>=90&&lastScore<90)celebrate(); lastScore=score; initialized=true;
   }
   function celebrate(){ if(matchMedia('(prefers-reduced-motion: reduce)').matches)return; const l=document.createElement('div'); l.className='celebration-layer'; const p=Object.values(colors); for(let i=0;i<24;i++){const e=document.createElement('i');e.className='celebration-particle';e.style.cssText=`--particle:${p[i%4]};--x:${(Math.random()-.5)*320}px;--y:${-80-Math.random()*280}px;--r:${Math.random()*540}deg;animation-delay:${Math.random()*.12}s`;l.append(e)} document.body.append(l);setTimeout(()=>l.remove(),1300);haptic('success'); }
   function profileExists(){ return ['macroflow-profile','macroflow-onboarding-v15','macroflow-training-profile'].some(k=>{try{return !!localStorage.getItem(k)}catch{return false}}); }

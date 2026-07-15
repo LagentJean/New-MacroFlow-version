@@ -285,20 +285,30 @@
 
   async function load() {
     const db = await openDb();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY);
-      request.onsuccess = () => resolve({ ...structuredClone(DEFAULT_STATE), ...(request.result || {}) });
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      return await new Promise((resolve, reject) => {
+        const request = db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY);
+        request.onsuccess = () => resolve({ ...structuredClone(DEFAULT_STATE), ...(request.result || {}) });
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      db.close();
+    }
   }
 
   async function save() {
     const db = await openDb();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction(STORE, 'readwrite').objectStore(STORE).put(data, KEY);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      await new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE, 'readwrite');
+        transaction.objectStore(STORE).put(data, KEY);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error || new Error('Sauvegarde entraînement annulée'));
+      });
+    } finally {
+      db.close();
+    }
   }
 
   function uid() { return crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`; }
@@ -519,13 +529,50 @@
     });
   }
 
+  function localizedNumber(value) {
+    const text = String(value ?? '').trim().replace(',', '.');
+    return text === '' ? NaN : Number(text);
+  }
+
+
+  const KG_TO_LB = 2.2046226218;
+  function usesImperialUnits() { return data.profile?.units === 'imperial'; }
+  function loadUnit() { return usesImperialUnits() ? 'lb' : 'kg'; }
+  function loadFromKg(valueKg) { return usesImperialUnits() ? Number(valueKg) * KG_TO_LB : Number(valueKg); }
+  function loadToKg(value) { const parsed = localizedNumber(value); return usesImperialUnits() ? parsed / KG_TO_LB : parsed; }
+  function inputLoadFromKg(valueKg) { return Number(valueKg) > 0 ? round(loadFromKg(valueKg), 0.5) : Number(valueKg) || 0; }
+  function formatLoad(valueKg) { return `${round(loadFromKg(valueKg), 0.5).toLocaleString('fr-CA')} ${loadUnit()}`; }
+  function formatVolume(valueKg) { return `${round(loadFromKg(valueKg), 0.1).toLocaleString('fr-CA')} ${loadUnit()}`; }
+
+  function updateLoadIncrementLabels(imperial = $('profileUnits')?.value === 'imperial') {
+    const select = $('trainingLoadIncrement');
+    if (!select) return;
+    const metricLabels = { '1': '1 kg', '2': '2 kg', '2.5': 'Automatique · 2,5 kg', '5': '5 kg' };
+    const imperialLabels = { '1': 'Très petit · ≈ 2,5 lb', '2': 'Petit · ≈ 5 lb', '2.5': 'Automatique · ≈ 5,5 lb', '5': 'Grand · ≈ 11 lb' };
+    [...select.options].forEach((option) => { option.textContent = (imperial ? imperialLabels : metricLabels)[option.value] || option.textContent; });
+  }
+
+  function imperialHeightInches() {
+    const feetRaw = String($('profileHeightFeet')?.value ?? '').trim();
+    const inchesRaw = String($('profileHeightInches')?.value ?? '').trim();
+    if (!feetRaw) return NaN;
+    if (!inchesRaw) {
+      const compact = feetRaw.replace(/[’']/g, '.').replace(',', '.').replace(/\s+/g, '.');
+      const notation = compact.match(/^(\d{1,2})\.(\d{1,2})$/);
+      if (notation) return Number(notation[1]) * 12 + Number(notation[2]);
+    }
+    const feet = localizedNumber(feetRaw);
+    const inches = inchesRaw === '' ? 0 : localizedNumber(inchesRaw);
+    return Number.isFinite(feet) && Number.isFinite(inches) ? feet * 12 + inches : NaN;
+  }
+
   function measurementValues() {
     const units = $('profileUnits').value;
     if (units === 'imperial') {
-      const totalInches = Number($('profileHeightFeet').value) * 12 + Number($('profileHeightInches').value);
-      return { units, heightCm: totalInches * 2.54, weightKg: Number($('profileWeightLb').value) / 2.2046226218 };
+      const totalInches = imperialHeightInches();
+      return { units, heightCm: totalInches * 2.54, weightKg: localizedNumber($('profileWeightLb').value) / 2.2046226218 };
     }
-    return { units, heightCm: Number($('profileHeight').value), weightKg: Number($('profileWeight').value) };
+    return { units, heightCm: localizedNumber($('profileHeight').value), weightKg: localizedNumber($('profileWeight').value) };
   }
 
   function collectProfile() {
@@ -585,8 +632,8 @@
     if (step === 0 && !profile.name) return 'Entre un prénom ou un pseudo.';
     if (step === 1 && (!Number.isFinite(profile.age) || profile.age < 13 || profile.age > 90)) return 'Entre un âge entre 13 et 90 ans.';
     if (step === 1 && !profile.sex) return 'Choisis l’option qui permettra d’estimer tes besoins énergétiques.';
-    if (step === 1 && (!Number.isFinite(profile.heightCm) || profile.heightCm < 120 || profile.heightCm > 230)) return 'Entre une taille réaliste entre 120 et 230 cm.';
-    if (step === 1 && (!Number.isFinite(profile.weightKg) || profile.weightKg < 30 || profile.weightKg > 300)) return 'Entre un poids réaliste entre 30 et 300 kg.';
+    if (step === 1 && (!Number.isFinite(profile.heightCm) || profile.heightCm < 120 || profile.heightCm > 230)) return profile.units === 'imperial' ? 'Entre une taille réaliste entre environ 3 pi 11 po et 7 pi 6 po.' : 'Entre une taille réaliste entre 120 et 230 cm.';
+    if (step === 1 && (!Number.isFinite(profile.weightKg) || profile.weightKg < 30 || profile.weightKg > 300)) return profile.units === 'imperial' ? 'Entre un poids réaliste entre 66 et 661 lb.' : 'Entre un poids réaliste entre 30 et 300 kg.';
     if (step === 4 && profile.availableDays.length < profile.days) return `Choisis au moins ${profile.days} jours disponibles.`;
     if (step === 5 && profile.activityLoad !== 'none' && !profile.activityTypes.length) return 'Choisis au moins un type d’activité, ou sélectionne « Aucune ou presque ».';
     if (step === 7 && profile.likes.some((id) => profile.dislikes.includes(id))) return 'Un même exercice ne peut pas être dans « J’aime » et « Je ne veux pas ».';
@@ -642,6 +689,8 @@
     const imperial = $('profileUnits')?.value === 'imperial';
     $('metricMeasurements')?.classList.toggle('hidden', imperial);
     $('imperialMeasurements')?.classList.toggle('hidden', !imperial);
+    $('imperialHeightHelp')?.classList.toggle('hidden', !imperial);
+    updateLoadIncrementLabels(imperial);
     $('activityTypesQuestion')?.classList.toggle('hidden', $('trainingActivityLoad').value === 'none');
     $('activityDaysQuestion')?.classList.toggle('hidden', $('trainingActivityLoad').value === 'none');
     $('trainingAvoidQuestion')?.classList.toggle('hidden', $('trainingInjury').value !== 'managed');
@@ -1215,13 +1264,13 @@
     const repPlaceholder = Math.min(exercise.maxRep, Math.max(exercise.minRep, Math.round(averageReps) + (averageReps < exercise.maxRep ? 1 : 0)));
     const increment = Number(exercise.increment);
     const techniqueConcern = techniqueConcernFor(workSets);
-    if (techniqueConcern === 'pain') return { weight: referenceWeight, repPlaceholder: Math.min(exercise.maxRep, Math.max(exercise.minRep, Math.round(averageReps))), type: 'caution', title: `Pas de hausse au-delà de ${referenceWeight} kg`, text: 'Une douleur a été signalée. N’essaie pas de la dépasser en forçant; arrête ce mouvement et fais évaluer toute douleur nouvelle ou inexpliquée.' };
-    if (techniqueConcern) return { weight: referenceWeight, repPlaceholder: Math.min(exercise.maxRep, Math.max(exercise.minRep, Math.round(averageReps))), type: 'caution', title: `Reste à ${referenceWeight} kg`, text: 'La charge n’augmente pas tant que l’exécution est à surveiller ou dégradée. Stabilise d’abord toutes les répétitions.' };
-    if (topReached && controlled) return { weight: round(referenceWeight + increment, 0.5), repPlaceholder: exercise.minRep, type: 'up', title: `${round(referenceWeight + increment, 0.5)} kg proposés`, text: `Les séries comparables ont atteint le haut de la plage avec au moins ${targetRir} RIR. Le plus petit incrément disponible est proposé, jamais imposé.` };
-    if (topReached && !rirComplete) return { weight: referenceWeight, repPlaceholder: exercise.maxRep, type: 'missing', title: `Garde ${referenceWeight} kg`, text: 'Le haut de la plage est atteint, mais le RIR manque. Enregistre-le sur toutes les séries avant d’augmenter.' };
+    if (techniqueConcern === 'pain') return { weight: referenceWeight, repPlaceholder: Math.min(exercise.maxRep, Math.max(exercise.minRep, Math.round(averageReps))), type: 'caution', title: `Pas de hausse au-delà de ${formatLoad(referenceWeight)}`, text: 'Une douleur a été signalée. N’essaie pas de la dépasser en forçant; arrête ce mouvement et fais évaluer toute douleur nouvelle ou inexpliquée.' };
+    if (techniqueConcern) return { weight: referenceWeight, repPlaceholder: Math.min(exercise.maxRep, Math.max(exercise.minRep, Math.round(averageReps))), type: 'caution', title: `Reste à ${formatLoad(referenceWeight)}`, text: 'La charge n’augmente pas tant que l’exécution est à surveiller ou dégradée. Stabilise d’abord toutes les répétitions.' };
+    if (topReached && controlled) return { weight: round(referenceWeight + increment, 0.5), repPlaceholder: exercise.minRep, type: 'up', title: `${formatLoad(round(referenceWeight + increment, 0.5))} proposés`, text: `Les séries comparables ont atteint le haut de la plage avec au moins ${targetRir} RIR. Le plus petit incrément disponible est proposé, jamais imposé.` };
+    if (topReached && !rirComplete) return { weight: referenceWeight, repPlaceholder: exercise.maxRep, type: 'missing', title: `Garde ${formatLoad(referenceWeight)}`, text: 'Le haut de la plage est atteint, mais le RIR manque. Enregistre-le sur toutes les séries avant d’augmenter.' };
     const hardSets = workSets.filter((set) => Number(set.reps) < Number(exercise.minRep) || (Number.isFinite(set.rir) && Number(set.rir) === 0));
-    if (hardSets.length >= Math.min(2, prescribedSets)) return { weight: referenceWeight, repPlaceholder: exercise.minRep, type: 'caution', title: `Reste à ${referenceWeight} kg aujourd’hui`, text: `La dernière exposition était difficile. Une seule mauvaise séance ne réduit pas la charge automatiquement; si cela se répète, le bilan hebdomadaire cherchera la cause.` };
-    return { weight: referenceWeight, repPlaceholder, type: 'same', title: `${referenceWeight} kg · vise ${repPlaceholder} reps`, text: `Garde la charge et progresse dans la plage ${exercise.minRep}-${exercise.maxRep} avec environ ${targetRir} RIR.` };
+    if (hardSets.length >= Math.min(2, prescribedSets)) return { weight: referenceWeight, repPlaceholder: exercise.minRep, type: 'caution', title: `Reste à ${formatLoad(referenceWeight)} aujourd’hui`, text: `La dernière exposition était difficile. Une seule mauvaise séance ne réduit pas la charge automatiquement; si cela se répète, le bilan hebdomadaire cherchera la cause.` };
+    return { weight: referenceWeight, repPlaceholder, type: 'same', title: `${formatLoad(referenceWeight)} · vise ${repPlaceholder} reps`, text: `Garde la charge et progresse dans la plage ${exercise.minRep}-${exercise.maxRep} avec environ ${targetRir} RIR.` };
   }
 
   function techniqueConcernFor(sets = []) {
@@ -1246,7 +1295,7 @@
   function previousText(exerciseId) {
     const previous = exerciseHistory(exerciseId)[0]?.sets || [];
     if (!previous.length) return 'Aucune performance précédente';
-    return `Dernière fois : ${previous.map((set) => `${Number(set.weight) > 0 ? `${set.weight} kg × ` : ''}${set.reps} reps${Number.isFinite(set.rir) ? ` · ${set.rir} RIR` : ''}`).join(' · ')}`;
+    return `Dernière fois : ${previous.map((set) => `${Number(set.weight) > 0 ? `${formatLoad(set.weight)} × ` : ''}${set.reps} reps${Number.isFinite(set.rir) ? ` · ${set.rir} RIR` : ''}`).join(' · ')}`;
   }
 
   function localDayKey(value = new Date()) {
@@ -1378,7 +1427,7 @@
           ...target,
           weight: round(previousWeight, 0.5),
           type: 'caution',
-          title: previousWeight > 0 ? `Garde ${round(previousWeight, 0.5)} kg aujourd’hui` : 'Garde ta variante actuelle aujourd’hui',
+          title: previousWeight > 0 ? `Garde ${formatLoad(previousWeight)} aujourd’hui` : 'Garde ta variante actuelle aujourd’hui',
           text: 'Le bilan du jour suspend cette hausse pour cette séance seulement. Le programme permanent et la progression suivante ne sont pas modifiés.',
         };
         changes.suppressedProgressions += 1;
@@ -1457,13 +1506,13 @@
   }
 
   function setDisplayValue(set) {
-    const load = Number(set.weight) > 0 ? `${set.weight} kg` : 'Poids du corps';
+    const load = Number(set.weight) > 0 ? formatLoad(set.weight) : 'Poids du corps';
     const labels = { solid: 'Technique solide', uncertain: 'Technique à surveiller', degraded: 'Technique dégradée', pain: 'Douleur signalée' };
     return `${load} × ${set.reps}${Number.isFinite(set.rir) ? ` · ${set.rir} RIR` : ''}${labels[set.techniqueQuality] ? ` · ${labels[set.techniqueQuality]}` : ''}`;
   }
 
   function renderLoggedSet(set, index) {
-    if (editingSetId === set.id) return `<div class="logged-set logged-set-editing" data-edit-set="${set.id}"><input class="edit-set-weight" aria-label="Modifier le poids" type="number" inputmode="decimal" min="0" step="0.5" value="${set.weight}"><input class="edit-set-reps" aria-label="Modifier les répétitions" type="number" inputmode="numeric" min="1" value="${set.reps}"><input class="edit-set-rir" aria-label="Modifier le RIR" type="number" inputmode="numeric" min="0" max="5" value="${Number.isFinite(set.rir) ? set.rir : ''}" placeholder="RIR"><select class="edit-set-technique" aria-label="Modifier la qualité technique"><option value=""${!set.techniqueQuality ? ' selected' : ''}>Technique non notée</option><option value="solid"${set.techniqueQuality === 'solid' ? ' selected' : ''}>Solide</option><option value="uncertain"${set.techniqueQuality === 'uncertain' ? ' selected' : ''}>À surveiller</option><option value="degraded"${set.techniqueQuality === 'degraded' ? ' selected' : ''}>Dégradée</option><option value="pain"${set.techniqueQuality === 'pain' ? ' selected' : ''}>Douleur</option></select><div class="logged-set-edit-actions"><button class="delete-set-button" type="button">Supprimer</button><button class="cancel-set-edit" type="button">Annuler</button><button class="save-set-button" type="button">Sauvegarder</button></div></div>`;
+    if (editingSetId === set.id) return `<div class="logged-set logged-set-editing" data-edit-set="${set.id}"><input class="edit-set-weight" aria-label="Modifier le poids" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" value="${inputLoadFromKg(set.weight)}"><input class="edit-set-reps" aria-label="Modifier les répétitions" type="number" inputmode="numeric" min="1" value="${set.reps}"><input class="edit-set-rir" aria-label="Modifier le RIR" type="number" inputmode="numeric" min="0" max="5" value="${Number.isFinite(set.rir) ? set.rir : ''}" placeholder="RIR"><select class="edit-set-technique" aria-label="Modifier la qualité technique"><option value=""${!set.techniqueQuality ? ' selected' : ''}>Technique non notée</option><option value="solid"${set.techniqueQuality === 'solid' ? ' selected' : ''}>Solide</option><option value="uncertain"${set.techniqueQuality === 'uncertain' ? ' selected' : ''}>À surveiller</option><option value="degraded"${set.techniqueQuality === 'degraded' ? ' selected' : ''}>Dégradée</option><option value="pain"${set.techniqueQuality === 'pain' ? ' selected' : ''}>Douleur</option></select><div class="logged-set-edit-actions"><button class="delete-set-button" type="button">Supprimer</button><button class="cancel-set-edit" type="button">Annuler</button><button class="save-set-button" type="button">Sauvegarder</button></div></div>`;
     return `<div class="logged-set" data-set-id="${set.id}"><span>Série ${index + 1}</span><b class="logged-set-value">${escapeText(setDisplayValue(set))}</b><div class="logged-set-actions"><button class="edit-set-button" type="button" aria-label="Modifier la série ${index + 1}">✎</button></div></div>`;
   }
 
@@ -1501,7 +1550,7 @@
     let entry = '';
     if (skipped) entry = `<div class="exercise-skipped-state"><span>↷</span><b>Exercice passé pour aujourd’hui</b><small>Les séries déjà faites sont conservées. Tu peux reprendre l’exercice si tu changes d’idée.</small></div><button class="resume-exercise-button" type="button">Reprendre cet exercice</button>`;
     else if (complete) entry = '<span class="exercise-complete-label">✓ Séries prévues complétées</span>';
-    else entry = `<div class="set-entry-heading"><span>Poids (kg)</span><span>Répétitions</span><span>RIR</span></div><div class="set-entry with-rir"><input class="set-weight" aria-label="Poids pour ${escapeText(exercise.name)}" type="number" inputmode="decimal" step="0.5" min="0" value="${defaults.weight}" placeholder="kg"><input class="set-reps" aria-label="Répétitions pour ${escapeText(exercise.name)}" type="number" inputmode="numeric" min="1" value="${defaults.reps}" placeholder="${exercise.minRep}"><input class="set-rir" aria-label="Répétitions en réserve" type="number" inputmode="numeric" min="0" max="5" placeholder="cible ${exercise.targetRir}"><button class="add-training-set" aria-label="Enregistrer la série de ${escapeText(exercise.name)}" type="button">Enregistrer la série ${logged.length + 1}</button></div><span class="set-rir-label">RIR = répétitions que tu aurais encore pu faire, entre 0 et 5.</span><div class="technique-quality"><span>Qualité de cette série · optionnel mais utile pour la progression</span><input class="set-technique" type="hidden" value=""><div class="technique-quality-options"><button class="technique-quality-button" data-technique-quality="solid" aria-pressed="false" type="button">✓ Solide</button><button class="technique-quality-button" data-technique-quality="uncertain" aria-pressed="false" type="button">? À surveiller</button><button class="technique-quality-button" data-technique-quality="degraded" aria-pressed="false" type="button">↘ Dégradée</button><button class="technique-quality-button" data-technique-quality="pain" aria-pressed="false" type="button">! Douleur</button></div><span class="technique-pain-warning hidden">Arrête la série. Ne force pas à travers une douleur nouvelle, vive ou inexpliquée; remplace ou cesse le mouvement et fais-la évaluer si nécessaire.</span></div>`;
+    else entry = `<div class="set-entry-heading"><span>Poids (${loadUnit()})</span><span>Répétitions</span><span>RIR</span></div><div class="set-entry with-rir"><input class="set-weight" aria-label="Poids pour ${escapeText(exercise.name)}" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" value="${defaults.weight === '' ? '' : inputLoadFromKg(defaults.weight)}" placeholder="${loadUnit()}"><input class="set-reps" aria-label="Répétitions pour ${escapeText(exercise.name)}" type="number" inputmode="numeric" min="1" value="${defaults.reps}" placeholder="${exercise.minRep}"><input class="set-rir" aria-label="Répétitions en réserve" type="number" inputmode="numeric" min="0" max="5" placeholder="cible ${exercise.targetRir}"><button class="add-training-set" aria-label="Enregistrer la série de ${escapeText(exercise.name)}" type="button">Enregistrer la série ${logged.length + 1}</button></div><span class="set-rir-label">RIR = répétitions que tu aurais encore pu faire, entre 0 et 5.</span><div class="technique-quality"><span>Qualité de cette série · optionnel mais utile pour la progression</span><input class="set-technique" type="hidden" value=""><div class="technique-quality-options"><button class="technique-quality-button" data-technique-quality="solid" aria-pressed="false" type="button">✓ Solide</button><button class="technique-quality-button" data-technique-quality="uncertain" aria-pressed="false" type="button">? À surveiller</button><button class="technique-quality-button" data-technique-quality="degraded" aria-pressed="false" type="button">↘ Dégradée</button><button class="technique-quality-button" data-technique-quality="pain" aria-pressed="false" type="button">! Douleur</button></div><span class="technique-pain-warning hidden">Arrête la série. Ne force pas à travers une douleur nouvelle, vive ou inexpliquée; remplace ou cesse le mouvement et fais-la évaluer si nécessaire.</span></div>`;
 
     const replaceDisabled = logged.length ? ' disabled title="Supprime les séries de cet exercice avant de le remplacer"' : '';
     const dailyCoachBanner = data.activeSession.dailyCoach ? `<div class="session-daily-coach-banner"><strong>${data.activeSession.dailyCoach.mode === 'lighter' ? 'Version allégée confirmée' : data.activeSession.dailyCoach.swapSchedule ? 'Ordre de la semaine échangé' : 'Coach du jour confirmé'}</strong><span>${data.activeSession.dailyCoach.mode === 'lighter' ? '+1 RIR · accessoires légèrement réduits · hausse de charge suspendue pour aujourd’hui seulement.' : data.activeSession.dailyCoach.swapSchedule ? 'Cette séance prend la place de la séance prévue aujourd’hui; l’autre journée est déplacée dans cette semaine seulement.' : 'La séance et sa progression restent inchangées.'}</span></div>` : '';
@@ -1534,7 +1583,7 @@
   function addTrainingSet(element, day) {
     const exercise = activeSessionExercises(day).find((item) => item.id === element.dataset.exercise);
     if (!exercise) return;
-    const weight = Number(element.querySelector('.set-weight').value); const reps = Number(element.querySelector('.set-reps').value);
+    const weight = loadToKg(element.querySelector('.set-weight').value); const reps = Number(element.querySelector('.set-reps').value);
     const rirText = element.querySelector('.set-rir').value; const rir = rirText === '' ? null : Number(rirText);
     const techniqueQuality = element.querySelector('.set-technique')?.value || null;
     if (!Number.isFinite(weight) || weight < 0 || !Number.isFinite(reps) || reps < 1 || (rir != null && (!Number.isFinite(rir) || rir < 0 || rir > 5))) return;
@@ -1561,7 +1610,7 @@
   function saveEditedSet(element) {
     const set = data.activeSession?.sets.find((item) => item.id === element?.dataset.editSet);
     if (!set) return;
-    const weight = Number(element.querySelector('.edit-set-weight').value); const reps = Number(element.querySelector('.edit-set-reps').value);
+    const weight = loadToKg(element.querySelector('.edit-set-weight').value); const reps = Number(element.querySelector('.edit-set-reps').value);
     const rirText = element.querySelector('.edit-set-rir').value; const rir = rirText === '' ? null : Number(rirText);
     const techniqueQuality = element.querySelector('.edit-set-technique')?.value || null;
     if (!Number.isFinite(weight) || weight < 0 || !Number.isFinite(reps) || reps < 1 || (rir != null && (!Number.isFinite(rir) || rir < 0 || rir > 5))) return showSessionNotice('Vérifie le poids, les répétitions et le RIR.');
@@ -1709,9 +1758,9 @@
     if (!session || !summary) { modal.classList.add('hidden'); return; }
     const dialog = $('sessionSummaryDialog'); dialog.classList.toggle('has-pr', summary.prs > 0); $('sessionSummaryIcon').textContent = summary.prs ? '🏆' : summary.progressions ? '📈' : '✅';
     $('sessionSummaryTitle').textContent = `${session.name} terminée`; $('sessionSummaryLead').textContent = summary.message;
-    $('sessionSummaryGrid').innerHTML = `<div><strong>${Math.round(summary.durationSeconds / 60)} min</strong><small>Durée</small></div><div><strong>${summary.loggedSets}/${summary.prescribedSets}</strong><small>Séries</small></div><div><strong>${summary.volumeKg} kg</strong><small>Volume enregistré</small></div><div><strong>${summary.prs ? `🏆 ${summary.prs}` : summary.progressions}</strong><small>${summary.prs ? 'Records estimés' : 'Progressions'}</small></div>`;
+    $('sessionSummaryGrid').innerHTML = `<div><strong>${Math.round(summary.durationSeconds / 60)} min</strong><small>Durée</small></div><div><strong>${summary.loggedSets}/${summary.prescribedSets}</strong><small>Séries</small></div><div><strong>${formatVolume(summary.volumeKg)}</strong><small>Volume enregistré</small></div><div><strong>${summary.prs ? `🏆 ${summary.prs}` : summary.progressions}</strong><small>${summary.prs ? 'Records estimés' : 'Progressions'}</small></div>`;
     const labels = { first: 'Première référence', improved: 'En progrès', steady: 'Référence conservée' };
-    $('sessionSummaryExercises').innerHTML = summary.exercises.filter((exercise) => exercise.loggedSets).map((exercise) => `<div class="session-summary-row"><div><b>${escapeText(exercise.name)}</b><small>${exercise.loggedSets}/${exercise.prescribedSets} séries${exercise.e1rm ? ` · 1RM estimé ${exercise.e1rm} kg` : ''}</small></div><span class="session-summary-status ${exercise.status}">${exercise.pr ? '🏆 Record estimé' : labels[exercise.status]}</span></div>`).join('') || '<p class="plate-empty">Aucune série enregistrée.</p>';
+    $('sessionSummaryExercises').innerHTML = summary.exercises.filter((exercise) => exercise.loggedSets).map((exercise) => `<div class="session-summary-row"><div><b>${escapeText(exercise.name)}</b><small>${exercise.loggedSets}/${exercise.prescribedSets} séries${exercise.e1rm ? ` · 1RM estimé ${formatLoad(exercise.e1rm)}` : ''}</small></div><span class="session-summary-status ${exercise.status}">${exercise.pr ? '🏆 Record estimé' : labels[exercise.status]}</span></div>`).join('') || '<p class="plate-empty">Aucune série enregistrée.</p>';
     modal.classList.remove('hidden'); document.body.style.overflow = 'hidden';
   }
 
@@ -1906,9 +1955,9 @@
 
   function renderHistory() {
     const records = personalRecords();
-    $('personalRecords').innerHTML = records.length ? records.slice(0, 8).map((record) => `<div class="pr-card"><strong>${round(record.e1rm, 0.5)} kg</strong><small>${escapeText(record.name)} · 1RM estimé</small></div>`).join('') : '<p class="plate-empty">Les records apparaîtront après tes séances.</p>';
+    $('personalRecords').innerHTML = records.length ? records.slice(0, 8).map((record) => `<div class="pr-card"><strong>${formatLoad(record.e1rm)}</strong><small>${escapeText(record.name)} · 1RM estimé</small></div>`).join('') : '<p class="plate-empty">Les records apparaîtront après tes séances.</p>';
     const sessions = completedSessions();
-    $('trainingHistory').innerHTML = sessions.length ? sessions.slice(0, 20).map((session) => `<div class="history-row"><b>${escapeText(session.name)} · ${session.sets.length} séries${session.summary?.prs ? ` · 🏆 ${session.summary.prs}` : ''}</b><small>${new Date(session.completedAt).toLocaleDateString('fr-CA')} · ${Math.round(session.durationSeconds / 60)} min · ${round(session.sets.reduce((sum, set) => sum + set.weight * set.reps, 0), 1)} kg de volume${session.summary?.progressions ? ` · ${session.summary.progressions} progression${session.summary.progressions > 1 ? 's' : ''}` : ''}</small></div>`).join('') : '<p class="plate-empty">Aucune séance terminée.</p>';
+    $('trainingHistory').innerHTML = sessions.length ? sessions.slice(0, 20).map((session) => `<div class="history-row"><b>${escapeText(session.name)} · ${session.sets.length} séries${session.summary?.prs ? ` · 🏆 ${session.summary.prs}` : ''}</b><small>${new Date(session.completedAt).toLocaleDateString('fr-CA')} · ${Math.round(session.durationSeconds / 60)} min · ${formatVolume(session.sets.reduce((sum, set) => sum + set.weight * set.reps, 0))} de volume${session.summary?.progressions ? ` · ${session.summary.progressions} progression${session.summary.progressions > 1 ? 's' : ''}` : ''}</small></div>`).join('') : '<p class="plate-empty">Aucune séance terminée.</p>';
     const plateauCount = data.program ? [...new Set(data.program.days.flatMap((day) => day.exercises.map((exercise) => exercise.id)))].filter(plateauFor).length : 0;
     const advice = $('deloadAdvice');
     if (plateauCount >= 3) { advice.textContent = `${plateauCount} exercices n’ont pas progressé sur quatre expositions. Vérifie d’abord sommeil, technique et effort. Si la fatigue est élevée, une semaine avec moins de séries peut être utile; MacroFlow ne l’impose pas automatiquement.`; advice.classList.remove('hidden'); }

@@ -50,3 +50,10 @@
 @keyframes plan-ready-in{from{opacity:0;transform:translateY(22px) scale(.95)}to{opacity:1;transform:none}}
 @media(max-width:390px){.card-options[data-columns="3"]{grid-template-columns:repeat(2,minmax(0,1fr))}.exercise-results{grid-template-columns:1fr}.review-edit-grid{grid-template-columns:repeat(2,1fr)}.plan-ready-stats{grid-template-columns:1fr 1fr}.plan-ready-stats div:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.onboarding-step.active,.plan-ready-dialog{animation:none}.training-onboarding .onboarding-progress span,.card-option{transition:none}}
+
+.imperial-height-help{display:block;margin:-5px 2px 12px;color:#aeb0ba;font-size:10px;line-height:1.45}.imperial-height-help b{color:#fff}
+
+/* v33 beta audit: the sticky action bar must never hide the last questionnaire field. */
+.training-onboarding .onboarding-step{scroll-margin-bottom:120px}
+.training-onboarding .onboarding-shell{padding-bottom:max(110px,calc(env(safe-area-inset-bottom) + 90px))}
+.training-onboarding .onboarding-actions{z-index:4}

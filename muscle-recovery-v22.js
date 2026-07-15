@@ -78,6 +78,7 @@
   }
 
   function profileRecoveryMultiplier(profile = {}, reviews = [], now = Date.now()) {
+    profile = profile || {};
     let multiplier = profile.recovery === 'variable' ? 1.16 : profile.recovery === 'fast' ? .92 : 1;
     if (profile.sleep === 'under6') multiplier *= 1.14;
     else if (profile.sleep === '6to7') multiplier *= 1.05;

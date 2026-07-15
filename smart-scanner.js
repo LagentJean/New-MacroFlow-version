@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const localizedNumber = (value) => { const text = String(value ?? '').trim().replace(',', '.'); return text === '' ? NaN : Number(text); };
 
 const MODEL_BYTES = 33_833_206;
 const FOODSEG_LABELS = ['background','candy','egg tart','french fries','chocolate','biscuit','popcorn','pudding','ice cream','cheese butter','cake','wine','milkshake','coffee','juice','milk','tea','almond','red beans','cashew','dried cranberries','soy','walnut','peanut','egg','apple','date','apricot','avocado','banana','strawberry','cherry','blueberry','raspberry','mango','olives','peach','lemon','pear','fig','pineapple','grape','kiwi','melon','orange','watermelon','steak','pork','chicken duck','sausage','fried meat','lamb','sauce','crab','fish','shellfish','shrimp','soup','bread','corn','hamburg','pizza','hanamaki baozi','wonton dumplings','pasta','noodles','rice','pie','tofu','eggplant','potato','garlic','cauliflower','tomato','kelp','seaweed','spring onion','rape','ginger','okra','lettuce','pumpkin','cucumber','white radish','carrot','asparagus','bamboo shoots','broccoli','celery stick','cilantro mint','snow peas','cabbage','bean sprouts','onion','pepper','green beans','French beans','king oyster mushroom','shiitake','enoki mushroom','oyster mushroom','white button mushroom','salad','other ingredients'];
@@ -247,29 +248,46 @@ function openPlateDb() {
 
 async function loadPlateProfiles() {
   const db = await openPlateDb();
-  return new Promise((resolve, reject) => {
-    const request = db.transaction(PLATE_STORE, 'readonly').objectStore(PLATE_STORE).getAll();
-    request.onsuccess = () => resolve((request.result || []).sort((a, b) => a.name.localeCompare(b.name)));
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction(PLATE_STORE, 'readonly').objectStore(PLATE_STORE).getAll();
+      request.onsuccess = () => resolve((request.result || []).sort((a, b) => a.name.localeCompare(b.name)));
+      request.onerror = () => reject(request.error);
+    });
+  } finally {
+    db.close();
+  }
 }
 
 async function putPlateProfile(profile) {
   const db = await openPlateDb();
-  return new Promise((resolve, reject) => {
-    const request = db.transaction(PLATE_STORE, 'readwrite').objectStore(PLATE_STORE).put(profile);
-    request.onsuccess = () => resolve(profile);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(PLATE_STORE, 'readwrite');
+      transaction.objectStore(PLATE_STORE).put(profile);
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error || new Error('Enregistrement de l’assiette annulé'));
+    });
+    return profile;
+  } finally {
+    db.close();
+  }
 }
 
 async function removePlateProfile(id) {
   const db = await openPlateDb();
-  return new Promise((resolve, reject) => {
-    const request = db.transaction(PLATE_STORE, 'readwrite').objectStore(PLATE_STORE).delete(id);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(PLATE_STORE, 'readwrite');
+      transaction.objectStore(PLATE_STORE).delete(id);
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error || new Error('Suppression de l’assiette annulée'));
+    });
+  } finally {
+    db.close();
+  }
 }
 
 function activePlate() {
@@ -279,7 +297,7 @@ function activePlate() {
 function currentPlateSpec() {
   const profile = activePlate();
   if (profile) return profile;
-  const diameter = Math.max(10, Math.min(50, Number($('plateDiameterCm')?.value) || state.plateDiameterCm || 27));
+  const diameter = Math.max(10, Math.min(50, localizedNumber($('plateDiameterCm')?.value) || state.plateDiameterCm || 27));
   return { id: '', name: 'Mesure manuelle', shape: 'round', widthCm: diameter, heightCm: diameter, depthCm: 0 };
 }
 
@@ -377,14 +395,14 @@ async function suggestPlateProfiles() {
 
 async function savePlateFromForm() {
   const name = $('plateName').value.trim(); const shape = $('plateShape').value;
-  const widthCm = Number($('plateWidthCm').value); const heightCm = shape === 'round' || shape === 'bowl' ? widthCm : Number($('plateHeightCm').value);
+  const widthCm = localizedNumber($('plateWidthCm').value); const heightCm = shape === 'round' || shape === 'bowl' ? widthCm : localizedNumber($('plateHeightCm').value);
   if (!name || !Number.isFinite(widthCm) || !Number.isFinite(heightCm) || widthCm < 8 || heightCm < 8) return setStatus('Complète le nom et les mesures de l’assiette.', null, true);
   let fingerprint = null;
   if (state.plateReferenceUrl) {
     const image = new Image(); image.src = state.plateReferenceUrl; await waitForImage(image);
     fingerprint = extractRimFingerprint(image, { shape, widthCm, heightCm });
   }
-  const profile = { id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`, name, shape, widthCm, heightCm, depthCm: Number($('plateDepthCm').value) || 0, fingerprint, createdAt: new Date().toISOString() };
+  const profile = { id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`, name, shape, widthCm, heightCm, depthCm: localizedNumber($('plateDepthCm').value) || 0, fingerprint, createdAt: new Date().toISOString() };
   await putPlateProfile(profile);
   state.plateProfiles = await loadPlateProfiles(); state.activePlateId = profile.id;
   renderPlateProfiles(); updatePlateSelection();
@@ -809,7 +827,7 @@ function renderResults() {
   $('smartIngredientList').innerHTML = state.results.map((item, index) => `
     <div class="smart-ingredient" data-smart-index="${index}">
       <div class="smart-ingredient-head"><b>${index + 1}. <input class="smart-name" value="${item.label.replace(/"/g, '&quot;')}" aria-label="Nom de l’ingrédient"></b><span class="smart-confidence ${item.estimateSource === 'verified' || item.estimateSource === 'verified-now' ? 'verified' : item.confidence < 55 ? 'low' : ''}">${item.estimateSource === 'verified-now' ? 'Pesé' : item.estimateSource === 'verified' ? `Vérifié · ${item.referenceCount}` : `${item.confidence}%`}</span></div>
-      <div class="smart-fields"><label>Quantité<input class="smart-grams" type="number" inputmode="decimal" min="1" value="${item.grams}"><small>g</small></label><div><strong class="smart-kcal">${item.calories} kcal</strong><small class="smart-macros">${item.protein} P · ${item.carbs} G · ${item.fat} L</small></div></div>
+      <div class="smart-fields"><label>Quantité<input class="smart-grams" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" value="${item.grams}"><small>g</small></label><div><strong class="smart-kcal">${item.calories} kcal</strong><small class="smart-macros">${item.protein} P · ${item.carbs} G · ${item.fat} L</small></div></div>
       <div class="smart-reference-actions"><button class="smart-verify" type="button">${item.estimateSource === 'verified-now' ? '✓ Portion vérifiée' : '✓ Vérifier cette portion pesée'}</button><button class="smart-remove" type="button">Retirer</button></div>
       <p class="smart-source-note">${item.estimateSource === 'verified' ? `Quantité calculée à partir de ${item.referenceCount} portion${item.referenceCount > 1 ? 's' : ''} réellement pesée${item.referenceCount > 1 ? 's' : ''}.` : item.estimateSource === 'verified-now' ? 'Cette quantité a été enregistrée comme vérité de référence.' : 'Estimation visuelle non vérifiée : corrige les grammes avec une balance avant de l’enregistrer comme référence.'}</p>${item.matched ? '' : '<p class="smart-warning">Aliment non relié précisément à la base locale : macros génériques à corriger.</p>'}
     </div>`).join('');
@@ -826,7 +844,7 @@ function renderResults() {
       renderResults();
     });
     element.querySelector('.smart-grams').addEventListener('input', (event) => {
-      state.results[index].grams = Math.max(1, Number(event.target.value) || 1);
+      state.results[index].grams = Math.max(1, localizedNumber(event.target.value) || 1);
       recalcItem(state.results[index]);
       const updated = totals();
       $('smartTotal').innerHTML = `<strong>${Math.round(updated.calories)} kcal</strong><span>${updated.protein.toFixed(1)} g protéines · ${updated.carbs.toFixed(1)} g glucides · ${updated.fat.toFixed(1)} g lipides</span>`;

@@ -13,6 +13,11 @@
     glutes: 'Fessiers', hamstrings: 'Ischios', calves: 'Mollets', core: 'Tronc',
   };
   const ui = { periodWeeks: 8, exerciseId: null, panel: 'summary', model: null, renderToken: 0, refreshTimer: null };
+  let progressUnits = 'metric';
+  const KG_TO_LB = 2.2046226218;
+  const displayedLoad = (kg) => progressUnits === 'imperial' ? Number(kg) * KG_TO_LB : Number(kg);
+  const loadUnit = () => progressUnits === 'imperial' ? 'lb' : 'kg';
+  const formatLoad = (kg, digits = 1) => `${round(displayedLoad(kg), digits)} ${loadUnit()}`;
 
   const $ = (id) => document.getElementById(id);
   const round = (value, digits = 1) => {
@@ -167,7 +172,7 @@
           e1rm: weighted ? round(weighted.value, 1) : null,
           reps: bestRepSet ? Number(bestRepSet.reps) : null,
           detail: weighted
-            ? `${round(weighted.set.weight, 1)} kg × ${weighted.set.reps}${finite(weighted.set.rir) ? ` · ${weighted.set.rir} RIR` : ''}`
+            ? `${formatLoad(weighted.set.weight, 1)} × ${weighted.set.reps}${finite(weighted.set.rir) ? ` · ${weighted.set.rir} RIR` : ''}`
             : bestRepSet ? `${bestRepSet.reps} répétitions${finite(bestRepSet.rir) ? ` · ${bestRepSet.rir} RIR` : ''}` : '',
         });
       }
@@ -260,7 +265,7 @@
         if (!best) continue;
         const previous = records.get(group.id) || 0;
         if (date >= cutoff && previous > 0 && best > previous * 1.005) {
-          events.push({ type: 'record', date, title: `Record estimé · ${group.name}`, detail: `1RM estimé ${round(best, 1)} kg`, value: best });
+          events.push({ type: 'record', date, title: `Record estimé · ${group.name}`, detail: `1RM estimé ${formatLoad(best, 1)}`, value: best });
         }
         if (best > previous) records.set(group.id, best);
       }
@@ -308,6 +313,7 @@
   }
 
   function buildProgressModel(training = {}, general = {}, periodWeeks = 8, now = new Date()) {
+    progressUnits = training?.profile?.units === 'imperial' ? 'imperial' : 'metric';
     const safeWeeks = [4, 8, 12].includes(Number(periodWeeks)) ? Number(periodWeeks) : 8;
     const bins = weekBins(safeWeeks, now);
     const cutoff = bins[0].start;
@@ -569,7 +575,7 @@
     select.innerHTML = model.exerciseSeries.map((exercise) => `<option value="${escapeText(exercise.id)}">${escapeText(exercise.name)}</option>`).join('');
     select.value = ui.exerciseId;
     const series = model.exerciseSeries.find((exercise) => exercise.id === ui.exerciseId) || model.exerciseSeries[0];
-    const suffix = series.metric === 'e1rm' ? ' kg est.' : ' reps';
+    const suffix = series.metric === 'e1rm' ? ` ${loadUnit()} est.` : ' reps';
     const change = series.changePercent == null ? '—' : `${series.changePercent >= 0 ? '+' : ''}${round(series.changePercent, 1)} %`;
     $('v14ExerciseStats').innerHTML = [
       metric(series.current == null ? '—' : `${round(series.current, 1)}${suffix}`, 'dernière référence'),

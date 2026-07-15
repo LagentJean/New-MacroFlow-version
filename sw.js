@@ -1,4 +1,4 @@
-const CACHE_NAME = 'macroflow-pwa-v36-science-audit-phase4-final-v32';
+const CACHE_NAME = 'macroflow-beta-audit-v33';
 const FILES = [
   './',
   './index.html',

@@ -41,3 +41,6 @@ button,.primary-action,.secondary-action,label.scan-primary-capture{touch-action
 input,select{transition:border-color .2s,box-shadow .2s,background .2s}input:focus,select:focus{border-color:rgba(191,90,242,.55)!important;box-shadow:0 0 0 4px rgba(191,90,242,.1);background:#121215!important}
 .meal-list:empty:before{content:"Tes repas apparaîtront ici.";display:block;padding:24px;text-align:center;color:#777780;border:1px dashed #2e2e33;border-radius:18px;background:rgba(255,255,255,.015)}
 @media(max-width:390px){.topbar{min-height:82px}.topbar h1{font-size:29px}.phase4-welcome h1{font-size:34px}.macro-orbit-legend{gap:4px}.quick-actions:before{display:none}}
+/* v33 beta audit: interactive rows must never sit behind the fixed tab bar. */
+.view{padding-bottom:calc(132px + var(--safe-bottom))}
+button,input,select,summary,.setting-row{scroll-margin-bottom:calc(112px + var(--safe-bottom));scroll-margin-top:90px}
