@@ -29,11 +29,6 @@
     return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
   }
   function rgba(hex, alpha = 1) { const { r, g, b } = hexToRgb(hex); return `rgba(${r}, ${g}, ${b}, ${alpha})`; }
-  function mixHex(baseHex, accentHex, amount = .5) {
-    const a = hexToRgb(baseHex); const b = hexToRgb(accentHex);
-    const m = (x, y) => Math.round(x + (y - x) * amount);
-    return `rgb(${m(a.r,b.r)}, ${m(a.g,b.g)}, ${m(a.b,b.b)})`;
-  }
 
   function inferPattern(set, exercise = {}) {
     if (exercise.pattern) return exercise.pattern;
@@ -84,9 +79,7 @@
     else if (profile.sleep === 'over9') multiplier *= .97;
     if (profile.stress === 'high') multiplier *= 1.1;
     else if (profile.stress === 'low') multiplier *= .96;
-    const recent = [...(reviews || [])]
-      .filter((review) => review.createdAt && hoursBetween(now, review.createdAt) <= 14 * 24)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    const recent = [...(reviews || [])].filter((review) => review.createdAt && hoursBetween(now, review.createdAt) <= 14 * 24).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
     if (recent) {
       if (Number(recent.recovery) <= 2) multiplier *= 1.1;
       else if (Number(recent.recovery) >= 4) multiplier *= .96;
@@ -159,61 +152,81 @@
 
   const REGIONS = {
     shoulders: [
-      'M 368 196 C 334 204 318 227 322 264 C 328 302 349 323 383 320 C 408 317 423 301 430 278 C 438 250 434 227 416 210 C 403 198 388 194 368 196 Z',
-      'M 633 196 C 667 204 683 227 679 264 C 673 302 652 323 618 320 C 593 317 578 301 571 278 C 563 250 567 227 585 210 C 598 198 613 194 633 196 Z',
-      'M 892 194 C 858 201 842 222 846 259 C 852 296 872 316 906 316 C 932 315 950 300 957 277 C 965 249 960 227 942 210 C 929 198 914 193 892 194 Z',
-      'M 1157 194 C 1191 201 1207 222 1203 259 C 1197 296 1177 316 1143 316 C 1117 315 1099 300 1092 277 C 1084 249 1089 227 1107 210 C 1120 198 1135 193 1157 194 Z'
+      // front left and right delts
+      'M 354 208 C 328 220 316 248 321 278 C 326 306 342 325 365 332 C 385 338 404 333 418 320 C 431 307 437 289 438 265 C 439 240 431 221 412 209 C 394 198 374 198 354 208 Z',
+      'M 582 208 C 608 220 620 248 615 278 C 610 306 594 325 571 332 C 551 338 532 333 518 320 C 505 307 499 289 498 265 C 497 240 505 221 524 209 C 542 198 562 198 582 208 Z',
+      // back left and right rear delts
+      'M 897 204 C 870 216 857 244 861 273 C 865 302 881 321 905 328 C 925 335 944 330 959 316 C 972 304 979 286 980 263 C 981 238 973 219 954 208 C 936 197 916 196 897 204 Z',
+      'M 1145 204 C 1172 216 1185 244 1181 273 C 1177 302 1161 321 1137 328 C 1117 335 1098 330 1083 316 C 1070 304 1063 286 1062 263 C 1061 238 1069 219 1088 208 C 1106 197 1126 196 1145 204 Z'
     ],
     chest: [
-      'M 402 238 C 368 245 349 268 352 309 C 355 348 382 370 426 368 C 459 366 484 349 495 319 C 502 300 503 275 500 247 C 468 234 435 232 402 238 Z',
-      'M 599 238 C 633 245 652 268 649 309 C 646 348 619 370 575 368 C 542 366 517 349 506 319 C 499 300 498 275 501 247 C 533 234 566 232 599 238 Z'
+      // front pectorals tightly following the illustrated pecs
+      'M 388 233 C 368 241 356 256 352 280 C 348 304 355 325 372 340 C 388 354 408 361 429 362 C 452 363 471 356 485 342 C 497 330 503 314 505 296 C 507 277 505 261 500 247 C 479 237 458 232 437 231 C 419 230 403 231 388 233 Z',
+      'M 548 231 C 527 232 506 237 485 247 C 480 261 478 277 480 296 C 482 314 488 330 500 342 C 514 356 533 363 556 362 C 577 361 597 354 613 340 C 630 325 637 304 633 280 C 629 256 617 241 597 233 C 582 231 566 230 548 231 Z'
     ],
     biceps: [
-      'M 323 279 C 301 300 291 331 294 380 C 296 422 307 452 327 472 C 345 490 368 488 380 471 C 391 455 391 434 386 402 C 378 351 375 316 364 292 C 354 272 340 267 323 279 Z',
-      'M 678 279 C 700 300 710 331 707 380 C 705 422 694 452 674 472 C 656 490 633 488 621 471 C 610 455 610 434 615 402 C 623 351 626 316 637 292 C 647 272 661 267 678 279 Z'
-    ],
-    core: [
-      'M 447 324 C 430 347 424 376 426 417 C 429 470 446 517 500 564 C 554 517 571 470 574 417 C 576 376 570 347 553 324 C 531 333 515 338 500 338 C 485 338 469 333 447 324 Z',
-      'M 403 324 C 383 341 373 370 375 410 C 377 450 391 489 417 523 C 434 501 442 463 447 411 C 451 372 447 341 437 321 C 424 321 413 322 403 324 Z',
-      'M 597 324 C 617 341 627 370 625 410 C 623 450 609 489 583 523 C 566 501 558 463 553 411 C 549 372 553 341 563 321 C 576 321 587 322 597 324 Z'
-    ],
-    quads: [
-      'M 405 505 C 375 541 361 592 365 662 C 369 742 387 801 424 840 C 457 813 478 752 482 668 C 486 600 472 547 445 513 C 433 499 419 496 405 505 Z',
-      'M 520 505 C 505 533 498 585 501 653 C 504 727 517 786 540 829 C 571 789 587 734 593 664 C 600 591 590 536 566 505 C 553 489 532 491 520 505 Z',
-      'M 595 505 C 625 541 639 592 635 662 C 631 742 613 801 576 840 C 543 813 522 752 518 668 C 514 600 528 547 555 513 C 567 499 581 496 595 505 Z',
-      'M 480 505 C 495 533 502 585 499 653 C 496 727 483 786 460 829 C 429 789 413 734 407 664 C 400 591 410 536 434 505 C 447 489 468 491 480 505 Z'
-    ],
-    calves: [
-      'M 419 740 C 398 772 390 815 397 872 C 403 920 419 956 445 985 C 466 952 476 913 477 868 C 478 817 462 772 438 744 C 432 737 425 735 419 740 Z',
-      'M 583 740 C 604 772 612 815 605 872 C 599 920 583 956 557 985 C 536 952 526 913 525 868 C 524 817 540 772 564 744 C 570 737 577 735 583 740 Z',
-      'M 995 743 C 972 777 963 821 970 878 C 976 922 993 956 1017 982 C 1040 948 1050 909 1052 864 C 1054 816 1038 775 1013 745 C 1008 739 1001 737 995 743 Z',
-      'M 1097 743 C 1120 777 1129 821 1122 878 C 1116 922 1099 956 1075 982 C 1052 948 1042 909 1040 864 C 1038 816 1054 775 1079 745 C 1084 739 1091 737 1097 743 Z'
-    ],
-    back: [
-      'M 957 205 C 922 228 902 267 898 323 C 894 393 911 453 948 512 C 973 471 991 414 999 345 C 1004 299 999 252 980 213 C 972 200 966 197 957 205 Z',
-      'M 1092 205 C 1127 228 1147 267 1151 323 C 1155 393 1138 453 1101 512 C 1076 471 1058 414 1050 345 C 1045 299 1050 252 1069 213 C 1077 200 1083 197 1092 205 Z',
-      'M 1002 146 C 986 175 980 212 983 257 C 986 295 1001 325 1030 349 C 1049 365 1075 365 1094 349 C 1123 325 1138 295 1141 257 C 1144 212 1138 175 1122 146 C 1103 163 1084 173 1062 173 C 1040 173 1021 163 1002 146 Z'
+      // front biceps following upper-arm bellies
+      'M 329 273 C 314 287 307 312 308 348 C 309 380 316 409 330 431 C 342 451 357 459 371 455 C 384 451 391 438 393 419 C 396 393 392 364 386 334 C 380 305 370 283 357 271 C 347 262 338 263 329 273 Z',
+      'M 607 273 C 622 287 629 312 628 348 C 627 380 620 409 606 431 C 594 451 579 459 565 455 C 552 451 545 438 543 419 C 540 393 544 364 550 334 C 556 305 566 283 579 271 C 589 262 598 263 607 273 Z'
     ],
     triceps: [
-      'M 904 285 C 882 305 871 337 874 389 C 876 431 887 463 907 485 C 924 503 947 502 959 484 C 969 468 970 444 966 411 C 959 358 955 322 944 298 C 935 280 921 275 904 285 Z',
-      'M 1145 285 C 1167 305 1178 337 1175 389 C 1173 431 1162 463 1142 485 C 1125 503 1102 502 1090 484 C 1080 468 1079 444 1083 411 C 1090 358 1094 322 1105 298 C 1114 280 1128 275 1145 285 Z'
+      // front outer triceps hint
+      'M 309 328 C 297 356 293 389 296 426 C 300 458 309 483 323 499 C 334 511 345 511 353 502 C 362 492 364 476 361 450 C 356 414 348 379 339 346 C 333 323 321 314 309 328 Z',
+      'M 627 328 C 639 356 643 389 640 426 C 636 458 627 483 613 499 C 602 511 591 511 583 502 C 574 492 572 476 575 450 C 580 414 588 379 597 346 C 603 323 615 314 627 328 Z',
+      // back triceps primary
+      'M 869 284 C 856 301 850 331 852 372 C 854 409 862 442 876 466 C 888 486 904 495 918 489 C 930 484 936 470 938 449 C 940 420 936 387 928 352 C 921 319 911 293 896 281 C 886 273 877 274 869 284 Z',
+      'M 1173 284 C 1186 301 1192 331 1190 372 C 1188 409 1180 442 1166 466 C 1154 486 1138 495 1124 489 C 1112 484 1106 470 1104 449 C 1102 420 1106 387 1114 352 C 1121 319 1131 293 1146 281 C 1156 273 1165 274 1173 284 Z'
+    ],
+    core: [
+      // upper abs / central trunk
+      'M 439 317 C 430 333 425 354 425 381 C 425 421 437 461 459 496 C 470 513 484 526 500 537 C 516 526 530 513 541 496 C 563 461 575 421 575 381 C 575 354 570 333 561 317 C 542 323 522 327 500 327 C 478 327 458 323 439 317 Z',
+      // left oblique
+      'M 397 316 C 380 333 371 357 370 389 C 370 426 382 460 405 492 C 416 507 428 518 441 527 C 447 500 451 473 452 444 C 454 399 448 358 433 322 C 420 319 408 317 397 316 Z',
+      // right oblique
+      'M 603 316 C 620 333 629 357 630 389 C 630 426 618 460 595 492 C 584 507 572 518 559 527 C 553 500 549 473 548 444 C 546 399 552 358 567 322 C 580 319 592 317 603 316 Z'
+    ],
+    quads: [
+      // front left quad bundle
+      'M 393 492 C 372 518 363 558 364 613 C 365 675 376 734 398 782 C 411 809 428 828 448 841 C 466 815 478 782 484 744 C 491 699 491 648 485 590 C 480 548 471 516 456 496 C 438 483 412 482 393 492 Z',
+      'M 459 494 C 474 518 481 551 482 593 C 483 642 477 692 466 740 C 457 778 443 812 426 840 C 445 834 461 819 476 795 C 503 752 520 695 523 628 C 526 571 514 528 490 499 C 481 487 469 485 459 494 Z',
+      // front right quad bundle
+      'M 607 492 C 628 518 637 558 636 613 C 635 675 624 734 602 782 C 589 809 572 828 552 841 C 534 815 522 782 516 744 C 509 699 509 648 515 590 C 520 548 529 516 544 496 C 562 483 588 482 607 492 Z',
+      'M 541 494 C 526 518 519 551 518 593 C 517 642 523 692 534 740 C 543 778 557 812 574 840 C 555 834 539 819 524 795 C 497 752 480 695 477 628 C 474 571 486 528 510 499 C 519 487 531 485 541 494 Z'
+    ],
+    calves: [
+      // front left calf
+      'M 406 732 C 393 759 389 795 392 836 C 396 882 409 924 428 957 C 440 977 453 986 464 983 C 475 980 481 968 484 947 C 489 908 490 869 484 829 C 478 788 467 754 452 733 C 440 719 417 718 406 732 Z',
+      // front right calf
+      'M 594 732 C 607 759 611 795 608 836 C 604 882 591 924 572 957 C 560 977 547 986 536 983 C 525 980 519 968 516 947 C 511 908 510 869 516 829 C 522 788 533 754 548 733 C 560 719 583 718 594 732 Z',
+      // back left calf
+      'M 972 730 C 959 757 955 792 958 833 C 962 880 975 922 994 954 C 1006 974 1019 983 1030 980 C 1041 977 1047 965 1050 944 C 1055 905 1056 866 1050 826 C 1044 786 1033 751 1018 730 C 1006 716 983 716 972 730 Z',
+      // back right calf
+      'M 1110 730 C 1123 757 1127 792 1124 833 C 1120 880 1107 922 1088 954 C 1076 974 1063 983 1052 980 C 1041 977 1035 965 1032 944 C 1027 905 1026 866 1032 826 C 1038 786 1049 751 1064 730 C 1076 716 1099 716 1110 730 Z'
+    ],
+    back: [
+      // upper traps / spinal erectors central
+      'M 994 144 C 980 170 974 202 976 242 C 978 281 988 313 1008 340 C 1021 358 1037 367 1054 367 C 1071 367 1087 358 1100 340 C 1120 313 1130 281 1132 242 C 1134 202 1128 170 1114 144 C 1095 159 1075 167 1054 167 C 1033 167 1013 159 994 144 Z',
+      // left lat / mid back
+      'M 905 230 C 887 253 878 286 878 330 C 878 377 888 421 908 463 C 923 495 943 520 968 539 C 988 502 1000 453 1004 390 C 1008 326 998 271 975 225 C 954 214 926 216 905 230 Z',
+      // right lat / mid back
+      'M 1203 230 C 1221 253 1230 286 1230 330 C 1230 377 1220 421 1200 463 C 1185 495 1165 520 1140 539 C 1120 502 1108 453 1104 390 C 1100 326 1110 271 1133 225 C 1154 214 1182 216 1203 230 Z'
     ],
     glutes: [
-      'M 966 446 C 929 468 915 509 924 563 C 931 608 958 634 1002 635 C 1039 636 1060 613 1064 574 C 1068 525 1053 479 1027 453 C 1011 437 986 434 966 446 Z',
-      'M 1158 446 C 1195 468 1209 509 1200 563 C 1193 608 1166 634 1122 635 C 1085 636 1064 613 1060 574 C 1056 525 1071 479 1097 453 C 1113 437 1138 434 1158 446 Z'
+      'M 956 438 C 930 453 917 478 916 515 C 915 548 924 578 941 602 C 958 625 981 638 1008 639 C 1033 640 1051 630 1060 612 C 1068 595 1070 569 1066 535 C 1061 492 1047 460 1024 440 C 1005 428 975 427 956 438 Z',
+      'M 1152 438 C 1178 453 1191 478 1192 515 C 1193 548 1184 578 1167 602 C 1150 625 1127 638 1100 639 C 1075 640 1057 630 1048 612 C 1040 595 1038 569 1042 535 C 1047 492 1061 460 1084 440 C 1103 428 1133 427 1152 438 Z'
     ],
     hamstrings: [
-      'M 972 565 C 944 604 933 661 938 735 C 943 794 958 844 983 885 C 1019 845 1037 786 1039 712 C 1042 651 1031 603 1007 570 C 998 558 984 556 972 565 Z',
-      'M 1152 565 C 1180 604 1191 661 1186 735 C 1181 794 1166 844 1141 885 C 1105 845 1087 786 1085 712 C 1082 651 1093 603 1117 570 C 1126 558 1140 556 1152 565 Z'
+      'M 954 566 C 935 594 927 631 929 677 C 931 733 943 787 964 836 C 977 866 993 888 1011 901 C 1030 877 1043 847 1051 810 C 1060 769 1062 724 1058 675 C 1054 631 1045 595 1031 568 C 1013 553 972 552 954 566 Z',
+      'M 1154 566 C 1173 594 1181 631 1179 677 C 1177 733 1165 787 1144 836 C 1131 866 1115 888 1097 901 C 1078 877 1065 847 1057 810 C 1048 769 1046 724 1050 675 C 1054 631 1063 595 1077 568 C 1095 553 1136 552 1154 566 Z'
     ]
   };
 
   function regionMarkup(muscle, entry) {
     const status = entry.status;
     const selected = muscle === selectedMuscle;
-    const opacity = status.key === 'neutral' ? .02 : clamp(.18 + entry.score * .48, .18, .72);
-    const fill = status.key === 'neutral' ? 'rgba(255,255,255,0.01)' : rgba(status.color, opacity);
-    const glow = status.key === 'neutral' ? 'transparent' : rgba(status.color, Math.min(.42, opacity * .7));
+    const alpha = status.key === 'neutral' ? 0 : clamp(0.18 + entry.score * 0.40, 0.18, 0.62);
+    const fill = status.key === 'neutral' ? 'rgba(0,0,0,0)' : rgba(status.color, alpha);
+    const glow = status.key === 'neutral' ? 'transparent' : rgba(status.color, Math.min(0.34, alpha * 0.65));
     return `<g class="muscle-region${selected ? ' selected' : ''}" data-muscle="${muscle}" tabindex="0" role="button" aria-label="${escapeText(`${entry.label} : sollicitation ${status.label.toLowerCase()}`)}" aria-pressed="${selected}" style="--region-fill:${fill};--region-glow:${glow}">${REGIONS[muscle].map((d) => `<path class="muscle-path" d="${d}"/>`).join('')}</g>`;
   }
   function renderZones(model) {
@@ -259,32 +272,49 @@
   function render() {
     if (!document.getElementById('muscleMapZones')) return;
     const model = buildRecoveryModel(latestState);
-    renderOverview(model); renderZones(model); renderSelector(model); renderDetail(model);
+    renderOverview(model);
+    renderZones(model);
+    renderSelector(model);
+    renderDetail(model);
   }
   function bind() {
     document.getElementById('muscleMapZones')?.addEventListener('click', (event) => {
       const button = event.target.closest('[data-muscle]');
       if (!button) return;
-      selectedMuscle = button.dataset.muscle; render();
+      selectedMuscle = button.dataset.muscle;
+      render();
     });
     document.getElementById('muscleMapZones')?.addEventListener('keydown', (event) => {
       const button = event.target.closest('[data-muscle]');
       if (!button) return;
       if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault(); selectedMuscle = button.dataset.muscle; render();
+      event.preventDefault();
+      selectedMuscle = button.dataset.muscle;
+      render();
     });
     document.getElementById('muscleRecoverySelector')?.addEventListener('click', (event) => {
       const button = event.target.closest('[data-select-muscle]');
       if (!button) return;
-      selectedMuscle = button.dataset.selectMuscle; render();
+      selectedMuscle = button.dataset.selectMuscle;
+      render();
     });
-    window.addEventListener('macroflow:training-state-rendered', (event) => { latestState = event.detail || latestState; render(); });
+    window.addEventListener('macroflow:training-state-rendered', (event) => {
+      latestState = event.detail || latestState;
+      render();
+    });
     window.addEventListener('macroflow:session-complete', () => window.setTimeout(render, 50));
     render();
     refreshTimer = window.setInterval(render, 15 * 60 * 1000);
     refreshTimer?.unref?.();
   }
 
-  window.MacroFlowMuscleRecoveryV22 = { version: 'MacroFlow-Muscle-Recovery-v22.2', buildRecoveryModel, statusFor, muscleContributionsForSet, profileRecoveryMultiplier };
+  window.MacroFlowMuscleRecoveryV22 = {
+    version: 'MacroFlow-Muscle-Recovery-v22.3',
+    buildRecoveryModel,
+    statusFor,
+    muscleContributionsForSet,
+    profileRecoveryMultiplier,
+  };
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true }); else bind();
 })();
