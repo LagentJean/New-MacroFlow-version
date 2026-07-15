@@ -1,13 +1,13 @@
 (() => {
   'use strict';
-  const VERSION = 34.2;
+  const VERSION = '35-safe';
   const $ = (id) => document.getElementById(id);
   const colors = { calories:'#bf5af2', protein:'#30d158', carbs:'#0a84ff', fat:'#ff9f0a' };
   const viewMeta = {
     home:['Aujourd’hui','MacroFlow'], scan:['Nutrition','Scanner'], workout:['Entraînement','Mon plan'],
     progress:['Progression','Mes progrès'], settings:['Profil et données','Réglages']
   };
-  let lastScore = 0, initialized = false, observedView = null;
+  let lastScore = 0, initialized = false;
   const numberFrom = (text) => { const m=String(text||'').replace(/\s/g,'').replace(',','.').match(/-?\d+(?:\.\d+)?/); return m?Number(m[0]):0; };
   const pct = (v,g) => Math.max(0,Math.min(1,(Number(v)||0)/(Number(g)||1)));
 
@@ -54,13 +54,6 @@
     installWelcome();upgradeMacroRing();updateRing();polishAccessibility();installNavigationPolish();installPressFeedback();
     window.addEventListener('macroflow:home-rendered',()=>requestAnimationFrame(updateRing));
     window.addEventListener('macroflow:view-change',(event)=>handleViewChange(event.detail?.view));
-    observedView=document.querySelector('.view.active')?.dataset.view||'home';
-    new MutationObserver(()=>{
-      const active=document.querySelector('.view.active')?.dataset.view;
-      if(!active || active===observedView) return;
-      observedView=active;
-      handleViewChange(active);
-    }).observe(document.querySelector('main')||document.body,{subtree:true,attributes:true,attributeFilter:['class']});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
   window.MacroFlowPhase4=Object.freeze({version:VERSION,updateRing,celebrate,animateView});

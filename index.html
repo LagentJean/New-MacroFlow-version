@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="onboarding-v15.css?v=342" />
   <link rel="stylesheet" href="phase4-v31.css?v=342" />
   <link rel="stylesheet" href="stabilisation-v34.css?v=342" />
+  <link rel="stylesheet" href="experience-v35-safe.css?v=350" />
   <link rel="stylesheet" href="scanner-v16.css?v=342" />
   <link rel="stylesheet" href="training-session-v16.css?v=342" />
   <link rel="stylesheet" href="quick-add-v20.css?v=342" />
@@ -73,7 +74,7 @@
     .adaptive-card{margin-top:12px;padding:18px}.adaptive-card h2{margin:5px 0 7px;font-size:21px}.adaptive-lead{color:var(--muted);font-size:12px;line-height:1.45;margin-bottom:14px}.weight-entry-form{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}.weight-entry-form input,.checkin-grid select{width:100%;border:1px solid #343438;border-radius:12px;background:#0e0e10;color:#fff;padding:11px;font-size:15px}.weight-entry-form button{border:0;border-radius:12px;background:linear-gradient(135deg,#a943e6,#7437ec);color:#fff;padding:0 15px;font-weight:900}.weight-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.weight-summary div{padding:11px 8px;border:1px solid #303034;border-radius:13px;background:#111113;text-align:center}.weight-summary strong,.weight-summary small{display:block}.weight-summary strong{font-size:17px}.weight-summary small{margin-top:3px;color:var(--muted);font-size:9px}.weight-sparkline{width:100%;height:82px;margin-top:10px;border-radius:13px;background:#111113}.weight-sparkline polyline{fill:none;stroke:#bf5af2;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.weight-sparkline circle{fill:#30d158}.weight-history{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.weight-pill{display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:10px;background:#202024;color:#d8d8dc;font-size:10px}.weight-pill button{border:0;background:none;color:#ff766f;padding:0;font-size:13px}.checkin-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.checkin-grid label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:10px}.recommendation{margin-top:12px;padding:14px;border:1px solid rgba(191,90,242,.35);border-radius:16px;background:linear-gradient(140deg,rgba(191,90,242,.13),rgba(48,209,88,.07))}.recommendation strong,.recommendation small{display:block}.recommendation strong{font-size:20px}.recommendation small{margin-top:5px;color:var(--muted);line-height:1.4}.recommendation-actions{display:grid;grid-template-columns:1fr 1.3fr;gap:7px;margin-top:12px}.recommendation-actions button{border:0;border-radius:12px;padding:11px;font-weight:850}.recommendation-dismiss{background:#29292d;color:#fff}.recommendation-apply{background:#30d158;color:#07120a}.adjustment-row{padding:10px 0;border-bottom:1px solid #29292c}.adjustment-row:last-child{border-bottom:0}.adjustment-row b,.adjustment-row small{display:block}.adjustment-row small{margin-top:3px;color:var(--muted);font-size:10px}
     @media(max-width:390px){.weight-entry-form{grid-template-columns:1fr 1fr}.weight-entry-form button{grid-column:1/3;padding:12px}.checkin-grid{grid-template-columns:1fr}.weight-summary{grid-template-columns:1fr 1fr}.weight-summary div:last-child{grid-column:1/3}}
   </style>
-  <title>MacroFlow v34.2 stable</title>
+  <title>MacroFlow v35 stable</title>
 </head>
 <body>
   <div class="app-shell">
@@ -606,7 +607,7 @@
           </div>
         </section>
         <section class="card app-status-card" aria-labelledby="appStatusTitle">
-          <div><span class="eyebrow">État de l’application</span><h2 id="appStatusTitle">MacroFlow v34</h2></div>
+          <div><span class="eyebrow">État de l’application</span><h2 id="appStatusTitle">MacroFlow v35 stable</h2></div>
           <div class="app-status-list">
             <span><b>Démarrage</b><small>Accueil léger</small></span>
             <span><b>Scanner local</b><small id="scannerModelState">Chargé seulement à l’ouverture</small></span>
@@ -672,7 +673,7 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
   const DB_KEY = 'main';
   const BACKUP_FORMAT = 'macroflow-backup';
   const BACKUP_VERSION = 4;
-  const APP_VERSION = 'MacroFlow-PWA-v34-Stabilisation';
+  const APP_VERSION = 'MacroFlow-PWA-v35-Safe-Rebuild';
   const AUTO_BACKUP_DB = { name: 'macroflow-recovery', version: 1, store: 'snapshots', keyPath: 'id' };
   const AUTO_BACKUP_LIMIT = 5;
   const AUTO_BACKUP_INTERVAL = 24 * 60 * 60 * 1000;
@@ -1799,5 +1800,6 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
 <script defer src="delight.js?v=342"></script>
 <script defer src="phase4-v31.js?v=342"></script>
 <script defer src="stabilisation-v34.js?v=342"></script>
+<script defer src="experience-v35-safe.js?v=350"></script>
 </body>
 </html>
