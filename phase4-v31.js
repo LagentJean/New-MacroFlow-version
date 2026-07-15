@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION = 32;
+  const VERSION = 34;
   const $ = (id) => document.getElementById(id);
   const colors = { calories:'#bf5af2', protein:'#30d158', carbs:'#0a84ff', fat:'#ff9f0a' };
   const viewMeta = {
@@ -49,7 +49,16 @@
   }
   function installPressFeedback(){ document.addEventListener('pointerdown',e=>{const b=e.target.closest('button,.primary-action,.secondary-action,label.scan-primary-capture');if(b)b.classList.add('is-pressed')}); document.addEventListener('pointerup',()=>document.querySelectorAll('.is-pressed').forEach(e=>e.classList.remove('is-pressed'))); document.addEventListener('pointercancel',()=>document.querySelectorAll('.is-pressed').forEach(e=>e.classList.remove('is-pressed'))); }
   function polishAccessibility(){ document.querySelectorAll('button:not([type])').forEach(b=>b.type='button');document.querySelectorAll('.card').forEach(c=>{if(!c.getAttribute('role')&&c.querySelector('button'))c.setAttribute('role','group')});document.querySelectorAll('input,select,button').forEach(e=>{if(!e.getAttribute('aria-label')&&!e.textContent.trim()&&!e.id)e.setAttribute('aria-label','Action MacroFlow')}); }
-  function boot(){installWelcome();upgradeMacroRing();updateRing();polishAccessibility();installNavigationPolish();installPressFeedback();window.addEventListener('macroflow:home-rendered',()=>requestAnimationFrame(updateRing));new MutationObserver(()=>{if(document.querySelector('[data-view="home"].active'))requestAnimationFrame(updateRing)}).observe(document.body,{subtree:true,childList:true});}
+  function handleViewChange(view){ if(!view)return; contextualHeader(view); animateView(view); if(view==='home')requestAnimationFrame(updateRing); }
+  function boot(){
+    installWelcome();upgradeMacroRing();updateRing();polishAccessibility();installNavigationPolish();installPressFeedback();
+    window.addEventListener('macroflow:home-rendered',()=>requestAnimationFrame(updateRing));
+    window.addEventListener('macroflow:view-change',(event)=>handleViewChange(event.detail?.view));
+    new MutationObserver(()=>{
+      const active=document.querySelector('.view.active')?.dataset.view;
+      if(active)handleViewChange(active);
+    }).observe(document.querySelector('main')||document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
   window.MacroFlowPhase4=Object.freeze({version:VERSION,updateRing,celebrate,animateView});
 })();

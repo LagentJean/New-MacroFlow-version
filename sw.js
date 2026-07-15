@@ -1,11 +1,11 @@
-const CACHE_NAME = 'macroflow-beta-audit-v33';
+const CACHE_NAME = 'macroflow-experience-v35';
 const FILES = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
-  './food-model.tflite',
+  './apple-touch-icon.png',
   './smart-scanner.js',
   './training.js',
   './nutrition-engine-v30.js',
@@ -27,6 +27,10 @@ const FILES = [
   './delight.js',
   './phase4-v31.css',
   './phase4-v31.js',
+  './stabilisation-v34.css',
+  './stabilisation-v34.js',
+  './experience-v35.css',
+  './experience-v35.js',
   './coach.css',
   './progress-v14.css',
   './progress-v14.js',

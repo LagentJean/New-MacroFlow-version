@@ -1,0 +1,18 @@
+.scanner-validation-card,.app-status-card{position:relative;overflow:hidden}
+.scanner-validation-card:before{content:"";position:absolute;left:0;bottom:0;width:var(--validation-progress,0%);height:3px;background:linear-gradient(90deg,#bf5af2,#0a84ff,#30d158);transition:width .45s ease}
+.scanner-validation-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.scanner-validation-head h2,.app-status-card h2{margin-top:3px}
+.scanner-validation-badge{min-width:54px;padding:7px 10px;border-radius:999px;text-align:center;background:rgba(191,90,242,.13);border:1px solid rgba(191,90,242,.32);color:#e2adff;font-weight:850;font-variant-numeric:tabular-nums}
+.scanner-validation-card>p{margin:10px 0 14px;color:#aaaab2;line-height:1.48}
+.scanner-validation-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.scanner-validation-stats>div{min-width:0;padding:11px 8px;border-radius:14px;background:#151518;border:1px solid #29292f;text-align:center}
+.scanner-validation-stats strong{display:block;font-size:15px;line-height:1.15;overflow-wrap:anywhere}
+.scanner-validation-stats small{display:block;margin-top:5px;color:#8f8f98;font-size:9px;line-height:1.25}
+.scanner-validation-actions{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}
+.scanner-validation-actions button{min-height:42px;border:1px solid #34343b;border-radius:13px;background:#1a1a1e;color:#fff;font-weight:800}
+.scanner-validation-actions .danger-subtle{color:#ff8d8d;background:rgba(255,69,58,.06);border-color:rgba(255,69,58,.2)}
+.app-status-list{display:grid;gap:1px;margin-top:12px;border:1px solid #2a2a30;border-radius:14px;overflow:hidden;background:#2a2a30}
+.app-status-list span{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;background:#161619}
+.app-status-list small{color:#9898a1;text-align:right}
+#scannerModelState[data-state="ready"]{color:#69df83}#scannerModelState[data-state="error"]{color:#ff8d8d}#scannerModelState[data-state="loading"]{color:#e2adff}
+@media(max-width:370px){.scanner-validation-stats{grid-template-columns:1fr}.scanner-validation-actions{grid-template-columns:1fr}.scanner-validation-actions button{width:100%}.app-status-list span{align-items:flex-start;flex-direction:column}.app-status-list small{text-align:left}}

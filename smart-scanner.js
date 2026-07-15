@@ -37,6 +37,38 @@ const REFERENCE_STORE = 'references';
 
 
 const PERSONAL_MEALS_KEY = 'macroflow-personal-meals-v27';
+const SCANNER_BENCHMARK_KEY = 'macroflow-scanner-benchmark-v34';
+
+function loadScannerBenchmark() {
+  try {
+    const value = JSON.parse(localStorage.getItem(SCANNER_BENCHMARK_KEY) || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch { return []; }
+}
+function saveScannerBenchmark(entries) {
+  localStorage.setItem(SCANNER_BENCHMARK_KEY, JSON.stringify(entries.slice(-120)));
+  window.dispatchEvent(new CustomEvent('macroflow:scanner-benchmark-updated'));
+}
+function recordScannerBenchmark(item, actualGrams) {
+  const estimatedGrams = Number(item.scanEstimatedGrams);
+  const actual = Number(actualGrams);
+  if (!Number.isFinite(estimatedGrams) || estimatedGrams <= 0 || !Number.isFinite(actual) || actual <= 0) return;
+  const absoluteError = Math.abs(estimatedGrams - actual);
+  const percentError = (absoluteError / actual) * 100;
+  const entries = loadScannerBenchmark();
+  entries.push({
+    id: `benchmark-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    label: item.label,
+    estimatedGrams: Math.round(estimatedGrams),
+    actualGrams: Math.round(actual),
+    absoluteError: Math.round(absoluteError * 10) / 10,
+    percentError: Math.round(percentError * 10) / 10,
+    estimateSource: item.scanEstimateSource || 'generic',
+    plateKey: referencePlateKey(),
+    createdAt: new Date().toISOString(),
+  });
+  saveScannerBenchmark(entries);
+}
 function loadPersonalMeals() { try { const value = JSON.parse(localStorage.getItem(PERSONAL_MEALS_KEY) || '[]'); return Array.isArray(value) ? value : []; } catch { return []; } }
 function savePersonalMeals(meals) { localStorage.setItem(PERSONAL_MEALS_KEY, JSON.stringify(meals.slice(0, 40))); }
 function mealSignature(items) { return items.map((item) => normalize(item.label)).sort().join('|'); }
@@ -176,7 +208,8 @@ function applyVerifiedEstimate(item) {
 }
 async function verifyResult(index) {
   const item = state.results[index];
-  if (!item || !Number(item.grams) || !Number(item.visualVolume)) return;
+  if (!item || item.estimateSource === 'verified-now' || !Number(item.grams) || !Number(item.visualVolume)) return;
+  recordScannerBenchmark(item, Number(item.grams));
   const reference = { id: `scanref-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, label: item.label.trim(), grams: Math.round(Number(item.grams)), visualVolume: Number(item.visualVolume), plateKey: referencePlateKey(), per100: { calories: item.per100.calories, protein: item.per100.protein, carbs: item.per100.carbs, fat: item.per100.fat }, createdAt: new Date().toISOString(), source: 'weighed-by-user' };
   await saveVerifiedReference(reference); state.verifiedReferences.push(reference);
   item.estimateSource = 'verified-now'; item.referenceCount = compatibleReferences(item).length; item.confidence = 98;
@@ -806,7 +839,10 @@ async function estimateQuantities(regions, displayImage) {
       referenceCount: 0,
       region,
     };
-    return applyVerifiedEstimate(item);
+    const estimated = applyVerifiedEstimate(item);
+    estimated.scanEstimatedGrams = Number(estimated.grams);
+    estimated.scanEstimateSource = estimated.estimateSource;
+    return estimated;
   });
 }
 
