@@ -1,0 +1,5 @@
+MacroFlow v34.1 — récupération stable
+
+But : revenir à la dernière version stable v34 et neutraliser tous les caches/service workers v35.
+Cette version ne supprime ni localStorage ni IndexedDB.
+Après publication, ouvrir /repair.html une fois.

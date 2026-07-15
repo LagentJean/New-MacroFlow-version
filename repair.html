@@ -1,47 +1,54 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr-CA">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="theme-color" content="#090909">
-  <title>Réparation MacroFlow</title>
+  <title>Réparer MacroFlow</title>
   <style>
-    html,body{margin:0;min-height:100%;background:#090909;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{display:grid;place-items:center;padding:24px}.card{width:min(100%,420px);padding:28px;border:1px solid #32283a;border-radius:24px;background:radial-gradient(circle at 50% 0,rgba(191,90,242,.2),transparent 42%),#171419;text-align:center;box-sizing:border-box}.bolt{font-size:44px}.spin{width:34px;height:34px;margin:20px auto;border:3px solid #353039;border-top-color:#bf5af2;border-radius:50%;animation:r .8s linear infinite}@keyframes r{to{transform:rotate(360deg)}}p{color:#aaa6af;line-height:1.5}.error{color:#ff9b95}button{border:0;border-radius:14px;padding:13px 18px;background:#bf5af2;color:white;font-weight:800}
+    :root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}
+    *{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;background:#090909;color:#fff;padding:24px}
+    main{width:min(100%,430px);padding:28px;border:1px solid rgba(255,255,255,.1);border-radius:28px;background:linear-gradient(145deg,rgba(169,108,255,.16),rgba(81,232,139,.08));box-shadow:0 24px 80px rgba(0,0,0,.45)}
+    .logo{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:#a96cff;color:#090909;font-size:30px;font-weight:900;margin-bottom:18px}
+    h1{font-size:27px;margin:0 0 10px}p{color:#c8c8cf;line-height:1.5;margin:0 0 18px}.status{padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.07);font-weight:700}
+    button{width:100%;border:0;border-radius:16px;padding:15px;font-size:16px;font-weight:800;background:#51e88b;color:#07120b;margin-top:16px;display:none}
+    small{display:block;color:#92929b;margin-top:14px;line-height:1.45}
   </style>
 </head>
 <body>
-  <main class="card">
-    <div class="bolt">⚡</div>
-    <h1>Réparation de MacroFlow</h1>
-    <div class="spin" aria-hidden="true"></div>
-    <p id="status">Suppression de l’ancien cache, sans toucher à tes repas, séances ou sauvegardes…</p>
-    <button id="retry" hidden>Réessayer</button>
-  </main>
-  <script>
-    async function repair(){
-      const status=document.getElementById('status');
-      const retry=document.getElementById('retry');
-      retry.hidden=true;
-      try{
-        if('serviceWorker' in navigator){
-          const registrations=await navigator.serviceWorker.getRegistrations();
-          await Promise.all(registrations.map((registration)=>registration.unregister()));
-        }
-        if('caches' in window){
-          const names=await caches.keys();
-          await Promise.all(names.filter((name)=>name.startsWith('macroflow-')).map((name)=>caches.delete(name)));
-        }
-        status.textContent='Cache réparé. Ouverture de la nouvelle version…';
-        setTimeout(()=>location.replace('./?v=351'),500);
-      }catch(error){
-        console.error(error);
-        status.className='error';
-        status.textContent='La réparation automatique a échoué. Réessaie une fois.';
-        retry.hidden=false;
-      }
+<main>
+  <div class="logo">⚡</div>
+  <h1>Réparation de MacroFlow</h1>
+  <p>Cette opération retire uniquement les anciens caches et workers cassés. Ton profil, tes repas, tes entraînements et tes sauvegardes locales ne sont pas supprimés.</p>
+  <div id="status" class="status">Nettoyage du cache en cours…</div>
+  <button id="open" type="button">Ouvrir MacroFlow</button>
+  <small>Ne ferme pas cette page avant que le bouton apparaisse.</small>
+</main>
+<script>
+(async () => {
+  const status = document.getElementById('status');
+  const open = document.getElementById('open');
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((reg) => reg.unregister()));
     }
-    document.getElementById('retry').addEventListener('click',repair);
-    repair();
-  </script>
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map((name) => caches.delete(name)));
+    }
+    status.textContent = 'Réparation terminée. Tes données personnelles sont intactes.';
+    open.style.display = 'block';
+    open.addEventListener('click', () => location.replace('./?recovery=341-' + Date.now()));
+    setTimeout(() => location.replace('./?recovery=341-' + Date.now()), 1200);
+  } catch (error) {
+    console.error(error);
+    status.textContent = 'Le nettoyage automatique a échoué. Recharge cette page une fois.';
+    open.style.display = 'block';
+    open.addEventListener('click', () => location.replace('./?recovery=341-' + Date.now()));
+  }
+})();
+</script>
 </body>
 </html>
