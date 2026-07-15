@@ -1785,7 +1785,7 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
     await createRecoveryPoint('automatic').catch((error) => console.warn('Point automatique impossible.', error));
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch((error) => console.warn('Mode hors ligne indisponible.', error));
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((registration) => registration.update()).catch((error) => console.warn('Mode hors ligne indisponible.', error));
     }
 
   }
@@ -1802,8 +1802,8 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
 <script defer src="daily-coach-v23.js?v=1"></script>
 <script defer src="exercise-technique-v24.js?v=1"></script>
 <script defer src="delight.js?v=31"></script>
-<script defer src="phase4-v31.js?v=34"></script>
+<script defer src="phase4-v31.js?v=351"></script>
 <script defer src="stabilisation-v34.js?v=34"></script>
-<script defer src="experience-v35.js?v=35"></script>
+<script defer src="experience-v35.js?v=351"></script>
 </body>
 </html>

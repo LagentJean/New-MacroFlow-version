@@ -54,9 +54,12 @@
     installWelcome();upgradeMacroRing();updateRing();polishAccessibility();installNavigationPolish();installPressFeedback();
     window.addEventListener('macroflow:home-rendered',()=>requestAnimationFrame(updateRing));
     window.addEventListener('macroflow:view-change',(event)=>handleViewChange(event.detail?.view));
+    let lastObservedView=document.querySelector('.view.active')?.dataset.view||null;
     new MutationObserver(()=>{
-      const active=document.querySelector('.view.active')?.dataset.view;
-      if(active)handleViewChange(active);
+      const active=document.querySelector('.view.active')?.dataset.view||null;
+      if(!active || active===lastObservedView) return;
+      lastObservedView=active;
+      handleViewChange(active);
     }).observe(document.querySelector('main')||document.body,{subtree:true,attributes:true,attributeFilter:['class']});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

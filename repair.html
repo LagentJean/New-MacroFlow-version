@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090909">
+  <title>Réparation MacroFlow</title>
+  <style>
+    html,body{margin:0;min-height:100%;background:#090909;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{display:grid;place-items:center;padding:24px}.card{width:min(100%,420px);padding:28px;border:1px solid #32283a;border-radius:24px;background:radial-gradient(circle at 50% 0,rgba(191,90,242,.2),transparent 42%),#171419;text-align:center;box-sizing:border-box}.bolt{font-size:44px}.spin{width:34px;height:34px;margin:20px auto;border:3px solid #353039;border-top-color:#bf5af2;border-radius:50%;animation:r .8s linear infinite}@keyframes r{to{transform:rotate(360deg)}}p{color:#aaa6af;line-height:1.5}.error{color:#ff9b95}button{border:0;border-radius:14px;padding:13px 18px;background:#bf5af2;color:white;font-weight:800}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="bolt">⚡</div>
+    <h1>Réparation de MacroFlow</h1>
+    <div class="spin" aria-hidden="true"></div>
+    <p id="status">Suppression de l’ancien cache, sans toucher à tes repas, séances ou sauvegardes…</p>
+    <button id="retry" hidden>Réessayer</button>
+  </main>
+  <script>
+    async function repair(){
+      const status=document.getElementById('status');
+      const retry=document.getElementById('retry');
+      retry.hidden=true;
+      try{
+        if('serviceWorker' in navigator){
+          const registrations=await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration)=>registration.unregister()));
+        }
+        if('caches' in window){
+          const names=await caches.keys();
+          await Promise.all(names.filter((name)=>name.startsWith('macroflow-')).map((name)=>caches.delete(name)));
+        }
+        status.textContent='Cache réparé. Ouverture de la nouvelle version…';
+        setTimeout(()=>location.replace('./?v=351'),500);
+      }catch(error){
+        console.error(error);
+        status.className='error';
+        status.textContent='La réparation automatique a échoué. Réessaie une fois.';
+        retry.hidden=false;
+      }
+    }
+    document.getElementById('retry').addEventListener('click',repair);
+    repair();
+  </script>
+</body>
+</html>

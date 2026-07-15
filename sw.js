@@ -1,4 +1,4 @@
-const CACHE_NAME = 'macroflow-experience-v35';
+const CACHE_NAME = 'macroflow-experience-v35-1-hotfix';
 const FILES = [
   './',
   './index.html',
@@ -61,6 +61,19 @@ self.addEventListener('fetch', (event) => {
   // Avoid duplicating ~236 MB in the application cache.
   if (requestUrl.pathname.includes('/models/')) return;
 
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
+        }
+        return response;
+      }).catch(() => caches.match('./index.html', { ignoreSearch: true })),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then((cached) => {
       if (cached) return cached;
@@ -69,10 +82,7 @@ self.addEventListener('fetch', (event) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
-      }).catch(() => {
-        if (event.request.mode === 'navigate') return caches.match(new URL('index.html', self.location.href).href, { ignoreSearch: true });
-        return new Response('MacroFlow est hors ligne et ce fichier ne se trouve pas encore dans le cache.', { status: 503 });
-      });
+      }).catch(() => new Response('MacroFlow est hors ligne et ce fichier ne se trouve pas encore dans le cache.', { status: 503 }));
     }),
   );
 });
