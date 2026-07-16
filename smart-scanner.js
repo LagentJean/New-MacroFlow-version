@@ -124,7 +124,7 @@ const FOOD_DB = [
   ['tuna|thon', 132, 29, 0, 1, 1.02, 2.0, 0.76],
   ['white fish|cod|fish|poisson|morue', 105, 23, 0, 1, 1.02, 2.0, 0.74],
   ['shrimp|prawn|crevette|crevettes', 99, 24, 0.2, 0.3, 0.96, 1.8, 0.62],
-  ['egg|eggs|oeuf|œuf|omelette', 155, 13, 1.1, 11, 1.03, 1.8, 0.72],
+  ['egg|eggs|oeuf|oeufs|œuf|œufs|omelette|scrambled egg|scrambled eggs|oeufs brouilles|œufs brouillés', 155, 13, 1.1, 11, 1.03, 1.8, 0.72],
   ['tofu', 144, 17, 2.8, 8.7, 1.02, 2.5, 0.78],
   ['rice|white rice|brown rice|riz', 130, 2.7, 28, 0.3, 0.78, 2.1, 0.62],
   ['fried rice|riz frit', 174, 4, 32, 3.2, 0.82, 2.2, 0.64],
@@ -626,58 +626,140 @@ function regionDepthScore(depth, box, sourceWidth, sourceHeight, platePercent) {
   return Math.max(0.15, Math.min(1, delta / range * 2.2));
 }
 
-async function ensureModels() {
-  if (state.foodSegSession && (state.depthEstimator || state.depthUnavailable)) return;
-  let device = navigator.gpu ? 'webgpu' : 'wasm';
-  if (!state.ort) {
-    setStatus('Ouverture du moteur de segmentation local…', 4);
-    state.ort = await import('./vendor/ort.min.js');
-    state.ort.env.wasm.wasmPaths = new URL('./vendor/', window.location.href).href;
-    state.ort.env.wasm.numThreads = 1;
-  }
-  if (!state.foodSegSession) {
-    setStatus('Chargement du modèle FoodSeg103 (~15 Mo)…', 28);
+const SCANNER_ENGINE_VERSION = '20260716b';
+const SCANNER_ENGINE_TIMEOUT_MS = 45000;
+
+function withTimeout(promise, timeoutMs, label) {
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = window.setTimeout(() => reject(new Error(`${label} a dépassé ${Math.round(timeoutMs / 1000)} s`)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
+}
+
+function versionedAsset(path) {
+  const url = new URL(path, window.location.href);
+  url.searchParams.set('mfscanner', SCANNER_ENGINE_VERSION);
+  return url.href;
+}
+
+async function freshModuleImport(path, label) {
+  const url = versionedAsset(path);
+  let blobUrl = '';
+  try {
+    setStatus(`Préparation de ${label}…`, 5);
+    const response = await withTimeout(fetch(url, { cache: 'reload', credentials: 'same-origin' }), 20000, `Téléchargement de ${label}`);
+    if (!response.ok) throw new Error(`${label} introuvable (${response.status})`);
+    const source = await response.text();
+    if (!source || source.length < 100) throw new Error(`${label} est vide ou incomplet`);
+    blobUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+    state.moduleBlobUrls ||= [];
+    state.moduleBlobUrls.push(blobUrl);
+    return await withTimeout(import(blobUrl), 20000, `Ouverture de ${label}`);
+  } catch (blobError) {
+    console.warn(`${label} blob import fallback`, blobError);
     try {
-      state.foodSegSession = await state.ort.InferenceSession.create('./models/foodseg103.onnx', { executionProviders: [device], graphOptimizationLevel: 'all' });
-    } catch (error) {
-      if (device !== 'webgpu') throw error;
-      console.warn('WebGPU segmentation fallback', error);
-      device = 'wasm';
-      state.foodSegSession = await state.ort.InferenceSession.create('./models/foodseg103.onnx', { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+      return await withTimeout(import(url), 20000, `Ouverture directe de ${label}`);
+    } catch (directError) {
+      const error = new Error(`${label} n'a pas pu être chargé sur Safari`);
+      error.cause = directError;
+      error.details = `${blobError?.message || blobError} | ${directError?.message || directError}`;
+      throw error;
     }
   }
-  if (!state.transformers) {
-    setStatus('Ouverture du moteur de profondeur local…', 38);
-    state.transformers = await import('./vendor/transformers.min.js');
-    const { env } = state.transformers;
+}
+
+async function createFreshWasmPaths() {
+  if (state.wasmPaths) return state.wasmPaths;
+  const mjsUrl = versionedAsset('./vendor/ort-wasm-simd-threaded.jsep.mjs');
+  const wasmUrl = versionedAsset('./vendor/ort-wasm-simd-threaded.jsep.wasm');
+  try {
+    const response = await withTimeout(fetch(mjsUrl, { cache: 'reload', credentials: 'same-origin' }), 20000, 'Téléchargement du module WebAssembly');
+    if (!response.ok) throw new Error(`Module WebAssembly introuvable (${response.status})`);
+    const source = await response.text();
+    const blobUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+    state.moduleBlobUrls ||= [];
+    state.moduleBlobUrls.push(blobUrl);
+    state.wasmPaths = { mjs: blobUrl, wasm: wasmUrl };
+  } catch (error) {
+    console.warn('WASM blob preparation fallback', error);
+    state.wasmPaths = { mjs: mjsUrl, wasm: wasmUrl };
+  }
+  return state.wasmPaths;
+}
+
+function configureWasmEnvironment(env) {
+  if (!env?.wasm) return;
+  env.wasm.wasmPaths = state.wasmPaths;
+  env.wasm.numThreads = 1;
+  env.wasm.proxy = false;
+  env.wasm.initTimeout = SCANNER_ENGINE_TIMEOUT_MS;
+}
+
+async function ensureDepthModel() {
+  if (state.depthEstimator || state.depthUnavailable) return;
+  const isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (!navigator.gpu) {
+    state.depthUnavailable = true;
+    return;
+  }
+  try {
+    setStatus('Ouverture optionnelle du moteur de profondeur…', 70);
+    state.transformers ||= await freshModuleImport('./vendor/transformers.min.js', 'le moteur de profondeur');
+    const { env, pipeline } = state.transformers;
     env.allowRemoteModels = false;
     env.allowLocalModels = true;
     env.localModelPath = './models/';
-    env.backends.onnx.wasm.wasmPaths = new URL('./vendor/', window.location.href).href;
-    env.backends.onnx.wasm.numThreads = 1;
-  }
-  const { pipeline } = state.transformers;
-  let loaded = 0;
-  const progress = (entry) => {
-    if (entry.status === 'progress' && Number.isFinite(entry.loaded)) loaded = Math.max(loaded, entry.loaded);
-    setStatus(`Chargement local : ${humanBytes(loaded)} / ~${humanBytes(MODEL_BYTES)}`, Math.min(94, loaded / MODEL_BYTES * 94));
-  };
-  if (!state.depthEstimator && device === 'webgpu') {
-    try {
-      state.depthEstimator = await pipeline('depth-estimation', 'depth-anything', {
-        local_files_only: true,
-        device,
-        dtype: 'q4f16',
-        progress_callback: progress,
-      });
-    } catch (error) {
-      console.warn('Depth WebGPU fallback', error);
-      state.depthUnavailable = true;
-    }
-  } else if (device !== 'webgpu') {
+    await createFreshWasmPaths();
+    configureWasmEnvironment(env.backends?.onnx);
+    let loaded = 0;
+    const progress = (entry) => {
+      if (entry.status === 'progress' && Number.isFinite(entry.loaded)) loaded = Math.max(loaded, entry.loaded);
+      setStatus(`Profondeur locale : ${humanBytes(loaded)} / ~${humanBytes(MODEL_BYTES)}`, Math.min(94, 70 + loaded / MODEL_BYTES * 24));
+    };
+    const depthTimeout = isAppleMobile ? 35000 : 60000;
+    state.depthEstimator = await withTimeout(pipeline('depth-estimation', 'depth-anything', {
+      local_files_only: true,
+      device: 'webgpu',
+      dtype: 'q4f16',
+      progress_callback: progress,
+    }), depthTimeout, 'Chargement du modèle de profondeur');
+  } catch (error) {
+    console.warn('Optional depth model unavailable; continuing with plate calibration', error);
     state.depthUnavailable = true;
+    state.depthEstimator = null;
   }
-  const depthMode = state.depthEstimator ? 'avec profondeur WebGPU' : 'avec hauteur typique de secours';
+}
+
+async function ensureModels() {
+  if (state.foodSegSession && (state.depthEstimator || state.depthUnavailable)) return;
+  await createFreshWasmPaths();
+  if (!state.ort) {
+    setStatus('Ouverture sécurisée du moteur de segmentation…', 8);
+    state.ort = await freshModuleImport('./vendor/ort.min.js', 'le moteur ONNX');
+    configureWasmEnvironment(state.ort.env);
+  }
+  if (!state.foodSegSession) {
+    setStatus('Chargement du modèle FoodSeg103 (~15 Mo)…', 32);
+    const modelUrl = versionedAsset('./models/foodseg103.onnx');
+    try {
+      state.foodSegSession = await withTimeout(state.ort.InferenceSession.create(modelUrl, {
+        executionProviders: ['wasm'],
+        graphOptimizationLevel: 'all',
+      }), SCANNER_ENGINE_TIMEOUT_MS, 'Initialisation de FoodSeg103');
+    } catch (firstError) {
+      console.warn('FoodSeg first initialization failed; retrying once', firstError);
+      state.foodSegSession = null;
+      configureWasmEnvironment(state.ort.env);
+      state.foodSegSession = await withTimeout(state.ort.InferenceSession.create(modelUrl, {
+        executionProviders: ['wasm'],
+        graphOptimizationLevel: 'basic',
+      }), SCANNER_ENGINE_TIMEOUT_MS, 'Deuxième initialisation de FoodSeg103');
+    }
+  }
+  setStatus('Segmentation prête. Vérification optionnelle de la profondeur…', 68);
+  await ensureDepthModel();
+  const depthMode = state.depthEstimator ? 'avec profondeur WebGPU' : 'avec calibration de l’assiette et hauteur typique';
   setStatus(`Modèles prêts ${depthMode}. La photo reste sur cet appareil.`, 100);
 }
 
@@ -748,7 +830,8 @@ async function detectRegions(imageUrl, displayImage) {
       const value = predictions.data[(4 + classIndex) * anchors + anchor];
       if (value > score) { score = value; classId = classIndex; }
     }
-    if (score < 0.15 || classId === 0) continue;
+    const classThreshold = classId === 24 ? 0.10 : 0.15;
+    if (score < classThreshold || classId === 0) continue;
     const centerX = predictions.data[anchor]; const centerY = predictions.data[anchors + anchor];
     const width = predictions.data[anchors * 2 + anchor]; const height = predictions.data[anchors * 3 + anchor];
     const inputBox = [centerX - width / 2, centerY - height / 2, centerX + width / 2, centerY + height / 2];
@@ -761,24 +844,39 @@ async function detectRegions(imageUrl, displayImage) {
     for (let channel = 0; channel < 32; channel += 1) coefficients[channel] = predictions.data[(4 + classCount + channel) * anchors + anchor];
     detections.push({ classId, score, box, inputBox, coefficients });
   }
+  // FoodSeg103 confond parfois les œufs brouillés avec du riz, des nouilles ou des pommes de terre
+  // lorsque toutes les prédictions sont faibles et occupent exactement la même zone. Dans ce cas,
+  // on privilégie l'œuf uniquement si sa prédiction est presque aussi forte que la meilleure.
+  const eggCandidate = detections.filter((item) => item.classId === 24).sort((a, b) => b.score - a.score)[0];
+  let adjustedDetections = detections;
+  if (eggCandidate) {
+    const strongest = [...detections].sort((a, b) => b.score - a.score)[0];
+    const commonScrambledEggConfusions = new Set([3, 9, 65, 66, 69]);
+    if (strongest && commonScrambledEggConfusions.has(strongest.classId) && strongest.score < 0.25 && eggCandidate.score >= strongest.score - 0.06 && intersectionOverUnion(eggCandidate, strongest) >= 0.72) {
+      eggCandidate.score = Math.max(eggCandidate.score, strongest.score + 0.015);
+      eggCandidate.scrambledEggHint = true;
+      adjustedDetections = detections.filter((item) => item === eggCandidate || !commonScrambledEggConfusions.has(item.classId) || item.score >= 0.25 || intersectionOverUnion(eggCandidate, item) < 0.72);
+    }
+  }
   const grouped = new Map();
-  for (const detection of nms(detections, 18)) {
+  for (const detection of nms(adjustedDetections, 18)) {
     const ratio = maskRatioForDetection(detection, prototypes);
     const area = Math.max(1, (detection.box[2] - detection.box[0]) * (detection.box[3] - detection.box[1]));
     const existing = grouped.get(detection.classId);
     if (!existing) {
-      grouped.set(detection.classId, { classId: detection.classId, box: [...detection.box], score: detection.score, maskedArea: area * ratio });
+      grouped.set(detection.classId, { classId: detection.classId, box: [...detection.box], score: detection.score, maskedArea: area * ratio, scrambledEggHint: Boolean(detection.scrambledEggHint) });
     } else {
       existing.box = [Math.min(existing.box[0], detection.box[0]), Math.min(existing.box[1], detection.box[1]), Math.max(existing.box[2], detection.box[2]), Math.max(existing.box[3], detection.box[3])];
       existing.score = Math.max(existing.score, detection.score);
       existing.maskedArea += area * ratio;
+      existing.scrambledEggHint ||= Boolean(detection.scrambledEggHint);
     }
   }
   const regions = [...grouped.values()].sort((a, b) => b.score - a.score).slice(0, 10).map((detection) => {
     const unionArea = Math.max(1, (detection.box[2] - detection.box[0]) * (detection.box[3] - detection.box[1]));
     const rawLabel = FOODSEG_LABELS[detection.classId] || 'other ingredients';
     return {
-      label: FR_LABELS[rawLabel] || rawLabel,
+      label: detection.scrambledEggHint ? 'œufs brouillés' : (FR_LABELS[rawLabel] || rawLabel),
       rawLabel,
       box: detection.box,
       score: detection.score,
@@ -917,9 +1015,10 @@ async function runAnalysis() {
   $('smartAnalyzeBtn').textContent = 'Analyse en cours…';
   setScanFlowStep('analyze');
   try {
+    const image = $('smartTopImage');
+    await withTimeout(waitForImage(image), 12000, 'Décodage de la photo');
     await ensureModels();
     setStatus('Détection locale des ingrédients séparés…', 95);
-    const image = $('smartTopImage');
     const regions = await detectRegions(state.topUrl, image);
     state.regions = regions;
     drawRegions(image, regions, $('smartOverlayCanvas'));
@@ -928,7 +1027,8 @@ async function runAnalysis() {
     renderResults();
   } catch (error) {
     console.error(error);
-    setStatus(`Le scanner avancé n’a pas terminé : ${error.message || error}. Le scanner classique reste disponible plus bas.`, null, true);
+    const details = error?.details ? ` (${error.details})` : '';
+    setStatus(`Le scanner avancé n’a pas terminé : ${error.message || error}${details}. Réessaie une fois; le scanner classique reste disponible plus bas.`, null, true);
   } finally {
     state.busy = false;
     $('smartAnalyzeBtn').disabled = false;
