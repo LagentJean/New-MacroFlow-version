@@ -1,24 +1,29 @@
-// MacroFlow v34.1 Recovery kill-switch.
-// This worker intentionally removes older broken caches and unregisters itself.
-const RECOVERY_CACHE_PREFIX = 'macroflow-';
+/* MacroFlow emergency service-worker removal.
+   Purpose: delete old app caches, release controlled clients, then unregister.
+   This file does not touch localStorage or IndexedDB user data. */
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(self.skipWaiting());
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    const names = await caches.keys();
-    await Promise.all(names.filter((name) => name.startsWith(RECOVERY_CACHE_PREFIX)).map((name) => caches.delete(name)));
-    await self.clients.claim();
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
+
+    const clients = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true,
+    });
+
     await self.registration.unregister();
-    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+
     for (const client of clients) {
-      client.postMessage({ source: 'macroflow-recovery', type: 'recovered' });
+      try {
+        await client.navigate(client.url);
+      } catch (_) {
+        // A client can disappear while the cleanup is running.
+      }
     }
   })());
-});
-
-self.addEventListener('fetch', () => {
-  // No interception during recovery: every file comes directly from GitHub Pages.
 });
