@@ -626,8 +626,8 @@ function regionDepthScore(depth, box, sourceWidth, sourceHeight, platePercent) {
   return Math.max(0.15, Math.min(1, delta / range * 2.2));
 }
 
-const SCANNER_ENGINE_VERSION = '20260716b';
-const SCANNER_ENGINE_TIMEOUT_MS = 45000;
+const SCANNER_ENGINE_VERSION = '20260716c';
+const SCANNER_ENGINE_TIMEOUT_MS = 60000;
 
 function withTimeout(promise, timeoutMs, label) {
   let timer = null;
@@ -637,60 +637,45 @@ function withTimeout(promise, timeoutMs, label) {
   return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
 }
 
-function versionedAsset(path) {
-  const url = new URL(path, window.location.href);
-  url.searchParams.set('mfscanner', SCANNER_ENGINE_VERSION);
+function rootAsset(name, versioned = true) {
+  const url = new URL(`./${name}`, window.location.href);
+  if (versioned) url.searchParams.set('mfscanner', SCANNER_ENGINE_VERSION);
   return url.href;
 }
 
-async function freshModuleImport(path, label) {
-  const url = versionedAsset(path);
-  let blobUrl = '';
-  try {
-    setStatus(`Préparation de ${label}…`, 5);
-    const response = await withTimeout(fetch(url, { cache: 'reload', credentials: 'same-origin' }), 20000, `Téléchargement de ${label}`);
-    if (!response.ok) throw new Error(`${label} introuvable (${response.status})`);
-    const source = await response.text();
-    if (!source || source.length < 100) throw new Error(`${label} est vide ou incomplet`);
-    blobUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
-    state.moduleBlobUrls ||= [];
-    state.moduleBlobUrls.push(blobUrl);
-    return await withTimeout(import(blobUrl), 20000, `Ouverture de ${label}`);
-  } catch (blobError) {
-    console.warn(`${label} blob import fallback`, blobError);
-    try {
-      return await withTimeout(import(url), 20000, `Ouverture directe de ${label}`);
-    } catch (directError) {
-      const error = new Error(`${label} n'a pas pu être chargé sur Safari`);
-      error.cause = directError;
-      error.details = `${blobError?.message || blobError} | ${directError?.message || directError}`;
-      throw error;
-    }
+async function verifyRootAsset(name, label, responseType = 'text') {
+  const url = rootAsset(name);
+  const response = await withTimeout(fetch(url, { cache: 'no-store', credentials: 'same-origin' }), 30000, `Téléchargement de ${label}`);
+  if (!response.ok) throw new Error(`${label} introuvable à la racine (${response.status})`);
+  if (responseType === 'arrayBuffer') {
+    const data = await response.arrayBuffer();
+    if (!data.byteLength) throw new Error(`${label} est vide`);
+    return data;
   }
+  const source = await response.text();
+  if (!source || source.length < 100) throw new Error(`${label} est vide ou incomplet`);
+  return source;
 }
 
-async function createFreshWasmPaths() {
-  if (state.wasmPaths) return state.wasmPaths;
-  const mjsUrl = versionedAsset('./vendor/ort-wasm-simd-threaded.jsep.mjs');
-  const wasmUrl = versionedAsset('./vendor/ort-wasm-simd-threaded.jsep.wasm');
+async function importRootModule(name, label) {
+  setStatus(`Vérification de ${label}…`, 5);
+  await verifyRootAsset(name, label, 'text');
   try {
-    const response = await withTimeout(fetch(mjsUrl, { cache: 'reload', credentials: 'same-origin' }), 20000, 'Téléchargement du module WebAssembly');
-    if (!response.ok) throw new Error(`Module WebAssembly introuvable (${response.status})`);
-    const source = await response.text();
-    const blobUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
-    state.moduleBlobUrls ||= [];
-    state.moduleBlobUrls.push(blobUrl);
-    state.wasmPaths = { mjs: blobUrl, wasm: wasmUrl };
+    return await withTimeout(import(rootAsset(name)), 30000, `Ouverture de ${label}`);
   } catch (error) {
-    console.warn('WASM blob preparation fallback', error);
-    state.wasmPaths = { mjs: mjsUrl, wasm: wasmUrl };
+    const wrapped = new Error(`${label} n'a pas pu être ouvert par Safari`);
+    wrapped.cause = error;
+    wrapped.details = error?.message || String(error);
+    throw wrapped;
   }
-  return state.wasmPaths;
 }
 
 function configureWasmEnvironment(env) {
   if (!env?.wasm) return;
-  env.wasm.wasmPaths = state.wasmPaths;
+  // ONNX Runtime attend ici le DOSSIER contenant les fichiers .mjs et .wasm.
+  // Tous les fichiers du correctif sont volontairement à la racine pour éviter
+  // les dossiers manquants lors d'un téléversement GitHub depuis le navigateur.
+  env.wasm.wasmPaths = new URL('./', window.location.href).href;
   env.wasm.numThreads = 1;
   env.wasm.proxy = false;
   env.wasm.initTimeout = SCANNER_ENGINE_TIMEOUT_MS;
@@ -699,31 +684,29 @@ function configureWasmEnvironment(env) {
 async function ensureDepthModel() {
   if (state.depthEstimator || state.depthUnavailable) return;
   const isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (!navigator.gpu) {
+  if (isAppleMobile || !navigator.gpu) {
     state.depthUnavailable = true;
     return;
   }
   try {
     setStatus('Ouverture optionnelle du moteur de profondeur…', 70);
-    state.transformers ||= await freshModuleImport('./vendor/transformers.min.js', 'le moteur de profondeur');
+    state.transformers ||= await importRootModule('transformers.min.js', 'le moteur de profondeur');
     const { env, pipeline } = state.transformers;
     env.allowRemoteModels = false;
     env.allowLocalModels = true;
     env.localModelPath = './models/';
-    await createFreshWasmPaths();
     configureWasmEnvironment(env.backends?.onnx);
     let loaded = 0;
     const progress = (entry) => {
       if (entry.status === 'progress' && Number.isFinite(entry.loaded)) loaded = Math.max(loaded, entry.loaded);
       setStatus(`Profondeur locale : ${humanBytes(loaded)} / ~${humanBytes(MODEL_BYTES)}`, Math.min(94, 70 + loaded / MODEL_BYTES * 24));
     };
-    const depthTimeout = isAppleMobile ? 35000 : 60000;
     state.depthEstimator = await withTimeout(pipeline('depth-estimation', 'depth-anything', {
       local_files_only: true,
       device: 'webgpu',
       dtype: 'q4f16',
       progress_callback: progress,
-    }), depthTimeout, 'Chargement du modèle de profondeur');
+    }), 60000, 'Chargement du modèle de profondeur');
   } catch (error) {
     console.warn('Optional depth model unavailable; continuing with plate calibration', error);
     state.depthUnavailable = true;
@@ -733,17 +716,17 @@ async function ensureDepthModel() {
 
 async function ensureModels() {
   if (state.foodSegSession && (state.depthEstimator || state.depthUnavailable)) return;
-  await createFreshWasmPaths();
   if (!state.ort) {
-    setStatus('Ouverture sécurisée du moteur de segmentation…', 8);
-    state.ort = await freshModuleImport('./vendor/ort.min.js', 'le moteur ONNX');
+    setStatus('Ouverture du moteur ONNX local…', 8);
+    state.ort = await importRootModule('ort.min.js', 'le moteur ONNX');
     configureWasmEnvironment(state.ort.env);
   }
   if (!state.foodSegSession) {
-    setStatus('Chargement du modèle FoodSeg103 (~15 Mo)…', 32);
-    const modelUrl = versionedAsset('./models/foodseg103.onnx');
+    setStatus('Téléchargement du modèle FoodSeg103 local (~15 Mo)…', 25);
+    const modelBuffer = await verifyRootAsset('foodseg103.onnx', 'le modèle FoodSeg103', 'arrayBuffer');
+    setStatus('Initialisation de FoodSeg103…', 48);
     try {
-      state.foodSegSession = await withTimeout(state.ort.InferenceSession.create(modelUrl, {
+      state.foodSegSession = await withTimeout(state.ort.InferenceSession.create(new Uint8Array(modelBuffer), {
         executionProviders: ['wasm'],
         graphOptimizationLevel: 'all',
       }), SCANNER_ENGINE_TIMEOUT_MS, 'Initialisation de FoodSeg103');
@@ -751,7 +734,7 @@ async function ensureModels() {
       console.warn('FoodSeg first initialization failed; retrying once', firstError);
       state.foodSegSession = null;
       configureWasmEnvironment(state.ort.env);
-      state.foodSegSession = await withTimeout(state.ort.InferenceSession.create(modelUrl, {
+      state.foodSegSession = await withTimeout(state.ort.InferenceSession.create(new Uint8Array(modelBuffer.slice(0)), {
         executionProviders: ['wasm'],
         graphOptimizationLevel: 'basic',
       }), SCANNER_ENGINE_TIMEOUT_MS, 'Deuxième initialisation de FoodSeg103');
