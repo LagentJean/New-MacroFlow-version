@@ -70,7 +70,7 @@
     .backup-dialog h2{margin:6px 0 8px;font-size:24px;letter-spacing:-.6px}.backup-dialog>p{color:var(--muted);font-size:13px;line-height:1.5}
     .backup-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.backup-preview div{padding:13px 8px;border:1px solid #343438;border-radius:15px;background:#111113;text-align:center}.backup-preview strong,.backup-preview small{display:block}.backup-preview strong{font-size:21px}.backup-preview small{margin-top:3px;color:var(--muted);font-size:10px}
     .backup-warning{padding:11px 12px;border-radius:13px;background:rgba(255,159,10,.09);border:1px solid rgba(255,159,10,.25);color:#e5b96b;font-size:11px;line-height:1.45}
-    .backup-status-card{margin-top:14px;padding:16px}.backup-status-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.backup-status-head h2{font-size:19px;margin:4px 0}.backup-status-head span{font-size:28px}.backup-status-card p{color:var(--muted);font-size:12px;line-height:1.45}.backup-status-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}.backup-status-actions button{border:1px solid #343438;border-radius:13px;background:#202024;color:#fff;padding:12px 8px;font-weight:750}.backup-status-actions button.primary{border:0;background:linear-gradient(135deg,#a943e6,#7437ec)}.backup-meta{display:flex;justify-content:space-between;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid #29292d;color:var(--muted);font-size:10px}.backup-meta strong{color:#fff}
+    .backup-center-card{margin-top:14px;padding:18px;background:radial-gradient(circle at 88% 6%,rgba(191,90,242,.16),transparent 36%),linear-gradient(150deg,#201426,#121214 60%)}.backup-center-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.backup-center-head h2{font-size:22px;margin:4px 0 6px}.backup-center-head>span{font-size:30px}.backup-center-card>p{color:var(--muted);font-size:12px;line-height:1.5}.backup-main-actions{display:grid;gap:9px;margin-top:15px}.backup-main-action{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #37343c;border-radius:16px;background:#19181c;color:#fff;padding:14px 15px;text-align:left}.backup-main-action.primary{border:0;background:linear-gradient(135deg,#a943e6,#7437ec);box-shadow:0 10px 24px rgba(191,90,242,.18)}.backup-main-action span{display:flex;flex-direction:column;gap:3px}.backup-main-action b{font-size:15px}.backup-main-action small{color:rgba(255,255,255,.62);font-size:10px;line-height:1.35}.backup-main-action>i{font-style:normal;font-size:22px}.backup-main-action input{display:none}.backup-action-status{margin-top:11px;padding:10px 11px;border:1px solid #303034;border-radius:13px;background:#111113;color:var(--muted);font-size:11px;line-height:1.4}.backup-action-status.success{border-color:rgba(48,209,88,.28);background:rgba(48,209,88,.08);color:#83e79b}.backup-action-status.error{border-color:rgba(255,69,58,.3);background:rgba(255,69,58,.08);color:#ff8b84}.backup-local-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:13px;padding-top:12px;border-top:1px solid #2c2930;color:var(--muted);font-size:10px}.backup-local-summary strong{color:#fff}.backup-local-note{margin-top:5px!important;font-size:10px!important}.backup-local-tools{margin-top:9px}.backup-local-tools summary{cursor:pointer;color:#aaa6ae;font-size:10px}.backup-local-tools button{width:100%;margin-top:8px;border:1px solid #343438;border-radius:12px;background:#202024;color:#fff;padding:10px;font-weight:750}
     .backup-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:15px}.backup-actions button{border:0;border-radius:14px;padding:14px;font-weight:850;font-size:14px}.backup-cancel{background:#29292d;color:#fff}.backup-confirm{background:linear-gradient(120deg,var(--purple),#8e44d0);color:#fff}
     @media(min-width:600px){.backup-modal{place-items:center}}
   </style>
@@ -606,11 +606,18 @@
           <div id="nutritionPlanHint" class="onboarding-note hidden" style="margin-bottom:12px"></div>
           <button type="button" class="big-button" id="saveGoalsBtn">Enregistrer</button>
         </div>
-        <section class="card backup-status-card" aria-labelledby="backupStatusTitle">
-          <div class="backup-status-head"><div><span class="eyebrow">Protection automatique</span><h2 id="backupStatusTitle">Tes données restent récupérables</h2></div><span>🛟</span></div>
-          <p>MacroFlow garde jusqu’à 5 points de récupération locaux. Un nouveau point est créé automatiquement lorsqu’il y a des changements importants, au maximum une fois par jour.</p>
-          <div class="backup-status-actions"><button id="createRecoveryBtn" class="primary" type="button">Créer un point</button><button id="restoreRecoveryBtn" type="button">Restaurer le dernier</button></div>
-          <div class="backup-meta"><span>Dernier point : <strong id="lastRecoveryLabel">aucun</strong></span><span><strong id="recoveryCountLabel">0</strong>/5 conservés</span></div>
+        <section class="card backup-center-card" aria-labelledby="backupStatusTitle">
+          <div class="backup-center-head"><div><span class="eyebrow">Sauvegarde</span><h2 id="backupStatusTitle">Protéger mes données</h2></div><span>🛟</span></div>
+          <p>Crée un fichier complet de MacroFlow, puis enregistre-le dans Fichiers, iCloud Drive ou Google Drive. C’est la vraie sauvegarde à conserver hors de Safari.</p>
+          <div class="backup-main-actions">
+            <button id="exportBtn" class="backup-main-action primary" type="button"><span><b>Sauvegarder maintenant</b><small>Repas, entraînements, progression, scanner et réglages</small></span><i>⇧</i></button>
+            <label class="backup-main-action"><span><b>Restaurer une sauvegarde</b><small>Choisir un fichier MacroFlow puis vérifier son contenu</small></span><i>›</i><input id="importInput" type="file" accept=".mflow,application/json" /></label>
+          </div>
+          <div id="backupActionStatus" class="backup-action-status" role="status" aria-live="polite">Aucune sauvegarde externe créée pendant cette session.</div>
+          <div class="backup-local-summary"><span>Protection automatique locale</span><span>Dernière copie : <strong id="lastRecoveryLabel">aucune</strong></span></div>
+          <p class="backup-local-note">Cette copie reste uniquement sur cet appareil et disparaît si les données Safari sont effacées.</p>
+          <details class="backup-local-tools"><summary>Dépannage local</summary><button id="restoreRecoveryBtn" type="button">Restaurer la dernière copie locale</button></details>
+          <span id="recoveryCountLabel" class="hidden">0</span>
         </section>
         <section class="card scanner-validation-card" aria-labelledby="scannerValidationTitle">
           <div class="scanner-validation-head">
@@ -638,8 +645,6 @@
         </section>
         <div class="card settings-card">
           <h2>Données</h2>
-          <button type="button" id="exportBtn" class="setting-row"><span>Exporter mon fichier MacroFlow</span><b>›</b></button>
-          <label class="setting-row"><span>Restaurer depuis un fichier</span><b>›</b><input id="importInput" type="file" accept=".mflow,application/json" /></label>
           <button type="button" id="resetBtn" class="setting-row danger"><span>Effacer toutes les données</span><b>›</b></button>
         </div>
         <div class="card privacy-card"><span>🔒</span><div><b>Local et privé</b><p>Les repas, objectifs et entraînements restent dans Safari sur cet iPhone.</p></div></div>
@@ -656,8 +661,8 @@
   </div>
   <div id="backupRestoreModal" class="backup-modal hidden" role="dialog" aria-modal="true" aria-labelledby="backupRestoreTitle">
     <div class="backup-dialog">
-      <span class="eyebrow">Restauration locale</span>
-      <h2 id="backupRestoreTitle">Vérifie la sauvegarde</h2>
+      <span class="eyebrow">Restauration</span>
+      <h2 id="backupRestoreTitle">Vérifie avant de restaurer</h2>
       <p id="backupRestoreDescription">Voici ce qui sera remis sur cet appareil.</p>
       <div class="backup-preview">
         <div><strong id="backupMealCount">0</strong><small>repas</small></div>
@@ -694,7 +699,7 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
   const DB_STORE = 'app-state';
   const DB_KEY = 'main';
   const BACKUP_FORMAT = 'macroflow-backup';
-  const BACKUP_VERSION = 4;
+  const BACKUP_VERSION = 5;
   const APP_VERSION = 'MacroFlow-PWA-v35-Safe-Rebuild';
   const AUTO_BACKUP_DB = { name: 'macroflow-recovery', version: 1, store: 'snapshots', keyPath: 'id' };
   const AUTO_BACKUP_LIMIT = 5;
@@ -889,7 +894,7 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
       } finally {
         database.close();
       }
-    }).catch((error) => console.warn('Sauvegarde locale impossible.', error));
+    }).then(() => scheduleRecoveryPoint('change')).catch((error) => console.warn('Sauvegarde locale impossible.', error));
   }
 
   function uid() {
@@ -1443,13 +1448,43 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
     } finally { database.close(); }
   }
 
+  function snapshotLocalSettings() {
+    const entries = {};
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith('macroflow-')) entries[key] = localStorage.getItem(key) ?? '';
+    }
+    return entries;
+  }
+
+  function restoreLocalSettings(entries = {}, replaceExisting = false) {
+    if (replaceExisting) {
+      const currentKeys = [];
+      for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (key?.startsWith('macroflow-')) currentKeys.push(key);
+      }
+      currentKeys.forEach((key) => { if (!Object.prototype.hasOwnProperty.call(entries, key)) localStorage.removeItem(key); });
+    }
+    Object.entries(entries || {}).forEach(([key, value]) => {
+      if (key.startsWith('macroflow-') && typeof value === 'string') localStorage.setItem(key, value);
+    });
+  }
+
   async function snapshotAllData() {
     const [training, plates, scannerReferences] = await Promise.all([
       readBackupEntry(BACKUP_DATABASES.training),
       readBackupEntry(BACKUP_DATABASES.plates),
       readBackupEntry(BACKUP_DATABASES.scannerReferences),
     ]);
-    return { general: JSON.parse(JSON.stringify(state)), training, plates, scannerReferences, personalMeals: JSON.parse(localStorage.getItem('macroflow-personal-meals-v27') || '[]') };
+    return {
+      general: JSON.parse(JSON.stringify(state)),
+      training,
+      plates,
+      scannerReferences,
+      personalMeals: JSON.parse(localStorage.getItem('macroflow-personal-meals-v27') || '[]'),
+      localSettings: snapshotLocalSettings(),
+    };
   }
 
   async function sha256Text(text) {
@@ -1476,9 +1511,17 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
     try {
       const points = await listRecoveryPoints();
       $('recoveryCountLabel').textContent = points.length;
-      $('lastRecoveryLabel').textContent = points[0]?.createdAt ? new Intl.DateTimeFormat('fr-CA', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(points[0].createdAt)) : 'aucun';
+      $('lastRecoveryLabel').textContent = points[0]?.createdAt ? new Intl.DateTimeFormat('fr-CA', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(points[0].createdAt)) : 'aucune';
       $('restoreRecoveryBtn').disabled = !points.length;
     } catch (error) { console.warn('État des points de récupération indisponible.', error); }
+  }
+
+  let recoveryScheduleTimer = null;
+  function scheduleRecoveryPoint(reason = 'change') {
+    window.clearTimeout(recoveryScheduleTimer);
+    recoveryScheduleTimer = window.setTimeout(() => {
+      createRecoveryPoint(reason).catch((error) => console.warn('Protection automatique différée impossible.', error));
+    }, 1800);
   }
 
   async function createRecoveryPoint(reason = 'manual', force = false) {
@@ -1503,10 +1546,11 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
 
   async function restoreLatestRecovery() {
     const points = await listRecoveryPoints();
-    if (!points.length) throw new Error('Aucun point de récupération disponible');
+    if (!points.length) throw new Error('Aucune copie locale disponible');
     const point = points[0];
-    const payload = { ...point.data, legacy: false };
-    if (!validGeneralBackup(payload.general) || !validTrainingBackup(payload.training) || !validPlateBackup(payload.plates) || !validScannerReferenceBackup(payload.scannerReferences || []) || !validPersonalMealsBackup(payload.personalMeals || [])) throw new Error('Point de récupération invalide');
+    const hasLocalSettings = !!point.data && Object.prototype.hasOwnProperty.call(point.data, 'localSettings');
+    const payload = { ...point.data, legacy: false, restoreLocalSettings: hasLocalSettings && validLocalSettingsBackup(point.data.localSettings) };
+    if (!validGeneralBackup(payload.general) || !validTrainingBackup(payload.training) || !validPlateBackup(payload.plates) || !validScannerReferenceBackup(payload.scannerReferences || []) || !validPersonalMealsBackup(payload.personalMeals || []) || (payload.restoreLocalSettings && !validLocalSettingsBackup(payload.localSettings))) throw new Error('Copie locale invalide');
     if (!await requestRestoreConfirmation(payload)) return false;
     await restoreBackup(payload);
     return true;
@@ -1557,9 +1601,22 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
         && validNumber(Number(item.grams), 1, 100000) && validNumber(Number(item.calories), 0, 20000)));
   }
 
+  function validLocalSettingsBackup(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const entries = Object.entries(value);
+    if (entries.length > 250) return false;
+    let totalLength = 0;
+    for (const [key, storedValue] of entries) {
+      if (!key.startsWith('macroflow-') || key.length > 240 || typeof storedValue !== 'string') return false;
+      totalLength += key.length + storedValue.length;
+      if (storedValue.length > 8 * 1024 * 1024 || totalLength > 20 * 1024 * 1024) return false;
+    }
+    return true;
+  }
+
   async function normalizeImportedBackup(parsed) {
     if (parsed?.format === BACKUP_FORMAT) {
-      if (![2, 3, BACKUP_VERSION].includes(parsed.version)) throw new Error(`Version de sauvegarde non prise en charge (${parsed.version ?? 'inconnue'})`);
+      if (![2, 3, 4, BACKUP_VERSION].includes(parsed.version)) throw new Error(`Version de sauvegarde non prise en charge (${parsed.version ?? 'inconnue'})`);
       const payload = parsed.data;
       if (parsed.version >= 3 && parsed.checksum) {
         const actual = await sha256Text(JSON.stringify(payload));
@@ -1567,10 +1624,24 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
       }
       const scannerReferences = parsed.version >= 3 ? (payload?.scannerReferences || []) : [];
       const personalMeals = parsed.version >= 4 ? (payload?.personalMeals || []) : [];
-      if (!payload || !validGeneralBackup(payload.general) || !validTrainingBackup(payload.training) || !validPlateBackup(payload.plates) || !validScannerReferenceBackup(scannerReferences) || !validPersonalMealsBackup(personalMeals)) throw new Error('Contenu de sauvegarde incomplet ou invalide');
-      return { general: { ...cloneDefault(), ...payload.general, sets: payload.general.sets || [] }, training: payload.training, plates: payload.plates, scannerReferences, personalMeals, legacy: false };
+      const hasLocalSettings = !!payload && Object.prototype.hasOwnProperty.call(payload, 'localSettings');
+      const localSettings = parsed.version >= 5 && hasLocalSettings ? payload.localSettings : {};
+      const complete = payload && validGeneralBackup(payload.general) && validTrainingBackup(payload.training) && validPlateBackup(payload.plates)
+        && validScannerReferenceBackup(scannerReferences) && validPersonalMealsBackup(personalMeals)
+        && (parsed.version < 5 || (hasLocalSettings && validLocalSettingsBackup(localSettings)));
+      if (!complete) throw new Error('Contenu de sauvegarde incomplet ou invalide');
+      return {
+        general: { ...cloneDefault(), ...payload.general, sets: payload.general.sets || [] },
+        training: payload.training,
+        plates: payload.plates,
+        scannerReferences,
+        personalMeals,
+        localSettings,
+        restoreLocalSettings: parsed.version >= 5,
+        legacy: false,
+      };
     }
-    if (validGeneralBackup(parsed)) return { general: { ...cloneDefault(), ...parsed, sets: parsed.sets || [] }, legacy: true };
+    if (validGeneralBackup(parsed)) return { general: { ...cloneDefault(), ...parsed, sets: parsed.sets || [] }, legacy: true, restoreLocalSettings: false };
     throw new Error('Format de sauvegarde non reconnu');
   }
 
@@ -1582,7 +1653,7 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
     $('backupPlateCount').textContent = trainingIncluded ? payload.plates.length : '—';
     $('backupRestoreDescription').textContent = payload.legacy
       ? 'Ancienne sauvegarde détectée : les repas et objectifs seront restaurés. Le profil Training et les assiettes actuels seront conservés.'
-      : 'Cette sauvegarde complète contient la nutrition, le profil Training, les séances, les assiettes, les références pesées, les recettes et les repas habituels.';
+      : 'Cette sauvegarde complète contient la nutrition, les entraînements, la progression, les assiettes, les références du scanner, ses validations et les réglages importants.';
     $('backupRestoreWarning').textContent = payload.legacy
       ? 'Les repas et objectifs locaux actuels seront remplacés. Les autres sections resteront intactes.'
       : 'Toutes les données locales actuelles seront remplacées. MacroFlow gardera une copie temporaire pour revenir en arrière si l’import échoue.';
@@ -1603,14 +1674,15 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
 
   async function restoreBackup(payload) {
     const rollback = await snapshotAllData();
-    await createRecoveryPoint('before-restore', true).catch((error) => console.warn('Point avant restauration impossible.', error));
+    await createRecoveryPoint('before-restore', true).catch((error) => console.warn('Copie avant restauration impossible.', error));
     try {
       await replaceBackupEntry(BACKUP_DATABASES.general, payload.general);
       if (!payload.legacy) {
         await replaceBackupEntry(BACKUP_DATABASES.training, payload.training);
         await replaceBackupEntry(BACKUP_DATABASES.plates, payload.plates);
         await replaceBackupEntry(BACKUP_DATABASES.scannerReferences, payload.scannerReferences || []);
-        localStorage.setItem('macroflow-personal-meals-v27', JSON.stringify(payload.personalMeals || []));
+        if (payload.restoreLocalSettings) restoreLocalSettings(payload.localSettings || {}, true);
+        else localStorage.setItem('macroflow-personal-meals-v27', JSON.stringify(payload.personalMeals || []));
       }
     } catch (error) {
       try {
@@ -1618,44 +1690,104 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
         await replaceBackupEntry(BACKUP_DATABASES.training, rollback.training);
         await replaceBackupEntry(BACKUP_DATABASES.plates, rollback.plates);
         await replaceBackupEntry(BACKUP_DATABASES.scannerReferences, rollback.scannerReferences || []);
-        localStorage.setItem('macroflow-personal-meals-v27', JSON.stringify(rollback.personalMeals || []));
+        restoreLocalSettings(rollback.localSettings || {}, true);
       } catch (rollbackError) { console.error('Retour arrière incomplet.', rollbackError); }
       throw error;
     }
   }
 
+  function setBackupActionStatus(message, kind = '') {
+    const node = $('backupActionStatus');
+    if (!node) return;
+    node.textContent = message;
+    node.classList.remove('success', 'error');
+    if (kind) node.classList.add(kind);
+  }
+
+  function downloadBackupFallback(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 2500);
+  }
+
   async function exportData() {
+    const button = $('exportBtn');
     try {
+      button.disabled = true;
+      setBackupActionStatus('Création et vérification du fichier complet…');
       showToast('Préparation de la sauvegarde complète…');
       const snapshot = await snapshotAllData();
       const backup = { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), appVersion: APP_VERSION, checksum: await sha256Text(JSON.stringify(snapshot)), data: snapshot };
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/x-macroflow+json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `MacroFlow-${localDate()}.mflow`;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      showToast('Sauvegarde complète prête');
-    } catch (error) { console.error(error); showToast('Impossible de créer la sauvegarde complète'); }
+      const serialized = JSON.stringify(backup, null, 2);
+      await normalizeImportedBackup(JSON.parse(serialized));
+      const filename = `MacroFlow-${localDate()}.mflow`;
+      const blob = new Blob([serialized], { type: 'application/x-macroflow+json' });
+      const file = typeof File === 'function' ? new File([blob], filename, { type: blob.type, lastModified: Date.now() }) : null;
+
+      if ('showSaveFilePicker' in window) {
+        const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'Sauvegarde MacroFlow', accept: { 'application/x-macroflow+json': ['.mflow'] } }] });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        setBackupActionStatus(`Sauvegarde enregistrée : ${filename}`, 'success');
+        showToast('Sauvegarde enregistrée');
+        return;
+      }
+
+      let canShareFile = false;
+      try { canShareFile = !!(file && navigator.share && navigator.canShare?.({ files: [file] })); } catch { canShareFile = false; }
+      if (canShareFile) {
+        await navigator.share({ title: 'Sauvegarde MacroFlow', text: 'Enregistre ce fichier dans Fichiers, iCloud Drive ou Google Drive.', files: [file] });
+        setBackupActionStatus(`Sauvegarde terminée : ${filename}`, 'success');
+        showToast('Sauvegarde terminée');
+        return;
+      }
+
+      downloadBackupFallback(blob, filename);
+      setBackupActionStatus(`Fichier vérifié et téléchargement lancé. Vérifie Téléchargements ou Fichiers : ${filename}`);
+      showToast('Téléchargement lancé');
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        setBackupActionStatus('Sauvegarde annulée. Aucune donnée n’a été modifiée.');
+        showToast('Sauvegarde annulée');
+      } else {
+        console.error(error);
+        setBackupActionStatus(error?.message || 'Impossible de créer la sauvegarde.', 'error');
+        showToast('Impossible de créer la sauvegarde');
+      }
+    } finally { button.disabled = false; }
   }
 
   async function importData(file) {
     if (!file) return;
     try {
+      setBackupActionStatus('Vérification du fichier sélectionné…');
       if (file.size > BACKUP_FILE_LIMIT) throw new Error('Fichier trop volumineux');
       const payload = await normalizeImportedBackup(JSON.parse(await file.text()));
-      if (!await requestRestoreConfirmation(payload)) return;
+      setBackupActionStatus('Fichier valide. Vérifie le résumé avant de restaurer.', 'success');
+      if (!await requestRestoreConfirmation(payload)) {
+        setBackupActionStatus('Restauration annulée. Aucune donnée n’a été modifiée.');
+        return;
+      }
+      setBackupActionStatus('Restauration en cours…');
       showToast('Restauration en cours…');
       await restoreBackup(payload);
       state = payload.general;
-      renderAll(); showToast('Sauvegarde restaurée');
+      renderAll();
+      setBackupActionStatus('Sauvegarde restaurée avec succès.', 'success');
+      showToast('Sauvegarde restaurée');
       setTimeout(() => window.location.reload(), 700);
-    } catch (error) { console.error(error); showToast(error.message || 'Fichier de sauvegarde invalide'); }
-    finally { $('importInput').value = ''; }
+    } catch (error) {
+      console.error(error);
+      setBackupActionStatus(error.message || 'Fichier de sauvegarde invalide', 'error');
+      showToast(error.message || 'Fichier de sauvegarde invalide');
+    } finally { $('importInput').value = ''; }
   }
 
   function renderAll() {
@@ -1751,16 +1883,14 @@ window.MACROFLOW_NUTRITION_RULES=[{"keywords": ["fried chicken", "crispy fried c
     $('weightValue').addEventListener('keydown', (event) => { if (event.key === 'Enter') saveWeight(); });
     $('analyzeWeekBtn').addEventListener('click', analyzeWeek);
     $('saveGoalsBtn').addEventListener('click', saveGoals);
-    $('createRecoveryBtn').addEventListener('click', async () => {
-      try { showToast('Création du point de récupération…'); await createRecoveryPoint('manual', true); showToast('Point de récupération créé'); }
-      catch (error) { console.error(error); showToast('Création impossible'); }
-    });
     $('restoreRecoveryBtn').addEventListener('click', async () => {
       try { if (await restoreLatestRecovery()) { showToast('Point restauré'); setTimeout(() => window.location.reload(), 700); } }
       catch (error) { console.error(error); showToast(error.message || 'Restauration impossible'); }
     });
     $('exportBtn').addEventListener('click', exportData);
     $('importInput').addEventListener('change', (e) => importData(e.target.files[0]));
+    window.addEventListener('macroflow:session-complete', () => scheduleRecoveryPoint('training-change'));
+    window.addEventListener('macroflow:scanner-benchmark-updated', () => scheduleRecoveryPoint('scanner-change'));
     $('resetBtn').addEventListener('click', async () => {
       if (!confirm('Effacer définitivement les repas, objectifs, pesées, bilans, progression d’élan, profil Training, programme, historique, séance active et assiettes? Exporte une sauvegarde complète avant si tu veux pouvoir revenir en arrière.')) return;
       try {
