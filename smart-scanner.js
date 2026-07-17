@@ -77,6 +77,7 @@ function mealConfidence(items) {
   const score = Math.round(items.reduce((sum, item) => {
     if (item.estimateSource === 'verified-now') return sum + 99;
     if (item.estimateSource === 'verified') return sum + Math.min(96, Number(item.confidence) || 90);
+    if (item.estimateSource === 'manual') return sum + Math.min(95, Number(item.confidence) || (item.matched ? 92 : 86));
     return sum + Math.min(70, Number(item.confidence) || 45);
   }, 0) / items.length);
   const stars = score >= 92 ? 5 : score >= 82 ? 4 : score >= 68 ? 3 : score >= 52 ? 2 : 1;
@@ -237,6 +238,129 @@ function lookupFood(label) {
   }).sort((a, b) => b.score - a.score);
   if (ranked[0]?.score >= 4) return { ...ranked[0].food, matched: true };
   return { calories: 170, protein: 8, carbs: 20, fat: 7, density: 0.75, height: 2.3, shape: 0.65, matched: false };
+}
+
+function lookupManualFood(label) {
+  const clean = normalize(label);
+  if (clean.length < 3) return { calories: 170, protein: 8, carbs: 20, fat: 7, density: 0.75, height: 2.3, shape: 0.65, matched: false };
+  const exact = FOOD_DB.find((food) => food.aliases.some((alias) => normalize(alias) === clean));
+  if (exact) return { ...exact, matched: true };
+  const contained = FOOD_DB.find((food) => food.aliases.some((alias) => {
+    const normalizedAlias = normalize(alias);
+    return normalizedAlias.length >= 3 && (clean.includes(normalizedAlias) || (clean.length >= 4 && normalizedAlias.startsWith(clean)));
+  }));
+  return contained ? { ...contained, matched: true } : { calories: 170, protein: 8, carbs: 20, fat: 7, density: 0.75, height: 2.3, shape: 0.65, matched: false };
+}
+
+function renderManualFoodSuggestions() {
+  const list = $('smartManualFoodSuggestions');
+  if (!list) return;
+  const suggestions = [...new Set(FOOD_DB.flatMap((food) => food.aliases).filter((alias) => alias.length > 2))]
+    .sort((a, b) => a.localeCompare(b, 'fr')).slice(0, 180);
+  list.innerHTML = suggestions.map((alias) => `<option value="${escapeText(alias)}"></option>`).join('');
+}
+
+function manualMacroInputs() {
+  return {
+    calories: $('smartManualCalories'),
+    protein: $('smartManualProtein'),
+    carbs: $('smartManualCarbs'),
+    fat: $('smartManualFat'),
+  };
+}
+
+function updateManualFoodPreview() {
+  const name = $('smartManualName')?.value.trim() || '';
+  const hint = $('smartManualMatch');
+  const inputs = manualMacroInputs();
+  if (!name) {
+    if (hint) { hint.className = 'smart-manual-match'; hint.textContent = 'Commence à écrire le nom de l’aliment.'; }
+    Object.values(inputs).forEach((input) => { if (input) input.value = ''; });
+    return;
+  }
+  const food = lookupManualFood(name);
+  if (inputs.calories) inputs.calories.value = String(food.calories);
+  if (inputs.protein) inputs.protein.value = String(food.protein);
+  if (inputs.carbs) inputs.carbs.value = String(food.carbs);
+  if (inputs.fat) inputs.fat.value = String(food.fat);
+  if (hint) {
+    hint.className = `smart-manual-match${food.matched ? '' : ' warn'}`;
+    hint.textContent = food.matched
+      ? 'Aliment reconnu dans la base locale. Vérifie la quantité et ajuste les macros au besoin.'
+      : 'Aliment non reconnu précisément. Entre les valeurs de l’étiquette ou de ta source pour 100 g.';
+  }
+}
+
+function setManualAddOpen(open) {
+  const panel = $('smartManualAddPanel');
+  const button = $('smartManualAddBtn');
+  if (!panel || !button) return;
+  panel.classList.toggle('hidden', !open);
+  button.textContent = open ? '− Fermer l’ajout manuel' : '＋ Ajouter un aliment oublié';
+  button.setAttribute('aria-expanded', String(open));
+  if (open) {
+    if (!$('smartManualName').value.trim()) {
+      $('smartManualGrams').value = '100';
+      updateManualFoodPreview();
+    }
+    setTimeout(() => {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      $('smartManualName')?.focus();
+    }, 40);
+  }
+}
+
+function readManualMacro(input, label) {
+  const value = localizedNumber(input?.value);
+  if (!Number.isFinite(value) || value < 0) throw new Error(`${label} doit être un nombre valide.`);
+  return value;
+}
+
+function addManualFood() {
+  const label = $('smartManualName')?.value.trim() || '';
+  const grams = localizedNumber($('smartManualGrams')?.value);
+  if (!label) throw new Error('Écris le nom de l’aliment.');
+  if (!Number.isFinite(grams) || grams <= 0 || grams > 3000) throw new Error('Entre une quantité valide en grammes.');
+  const matchedFood = lookupManualFood(label);
+  const per100 = {
+    ...matchedFood,
+    calories: readManualMacro($('smartManualCalories'), 'Les calories'),
+    protein: readManualMacro($('smartManualProtein'), 'Les protéines'),
+    carbs: readManualMacro($('smartManualCarbs'), 'Les glucides'),
+    fat: readManualMacro($('smartManualFat'), 'Les lipides'),
+  };
+  const item = {
+    label,
+    grams: Math.round(grams * 10) / 10,
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    per100,
+    confidence: matchedFood.matched ? 94 : 88,
+    matched: matchedFood.matched,
+    estimateSource: 'manual',
+    referenceCount: 0,
+    visualVolume: 0,
+    region: null,
+    manualCustomMacros: !matchedFood.matched,
+  };
+  recalcItem(item);
+  const duplicate = state.results.find((entry) => normalize(entry.label) === normalize(label));
+  if (duplicate) {
+    duplicate.grams = Math.round((Number(duplicate.grams) + item.grams) * 10) / 10;
+    if (duplicate.estimateSource === 'manual') duplicate.per100 = per100;
+    recalcItem(duplicate);
+    setStatus(`${label} était déjà présent : la quantité a été additionnée.`, 100);
+  } else {
+    state.results.push(item);
+    setStatus(`${label} a été ajouté manuellement au repas.`, 100);
+  }
+  $('smartManualName').value = '';
+  $('smartManualGrams').value = '100';
+  Object.values(manualMacroInputs()).forEach((input) => { if (input) input.value = ''; });
+  setManualAddOpen(false);
+  renderResults({ scroll: false });
 }
 
 function setStatus(message, progress = null, error = false) {
@@ -936,20 +1060,41 @@ function totals() {
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 }
 
-function renderResults() {
+function renderResults({ scroll = true } = {}) {
   const total = totals();
-  $('smartTotal').innerHTML = `<strong>${Math.round(total.calories)} kcal</strong><span>${total.protein.toFixed(1)} g protéines · ${total.carbs.toFixed(1)} g glucides · ${total.fat.toFixed(1)} g lipides</span>`;
+  const hasResults = state.results.length > 0;
+  $('smartTotal').innerHTML = hasResults
+    ? `<strong>${Math.round(total.calories)} kcal</strong><span>${total.protein.toFixed(1)} g protéines · ${total.carbs.toFixed(1)} g glucides · ${total.fat.toFixed(1)} g lipides</span>`
+    : '<strong>Aucun aliment détecté</strong><span>Ajoute ce que le scanner a oublié avec le bouton ci-dessous.</span>';
   const confidence = mealConfidence(state.results);
-  if ($('smartConfidenceSummary')) { $('smartConfidenceSummary').className = `smart-confidence-summary ${confidence.stars < 4 ? 'warn' : ''}`; $('smartConfidenceSummary').innerHTML = `<b>${'★'.repeat(confidence.stars)}${'☆'.repeat(5-confidence.stars)} · ${confidence.label}</b><br><span>${confidence.score}% fondé sur ${state.results.filter((item) => item.estimateSource === 'verified' || item.estimateSource === 'verified-now').length}/${state.results.length} portions vérifiées. Les huiles et sauces invisibles restent à confirmer.</span>`; }
-  $('smartIngredientList').innerHTML = state.results.map((item, index) => `
-    <div class="smart-ingredient" data-smart-index="${index}">
-      <div class="smart-ingredient-head"><b>${index + 1}. <input class="smart-name" value="${item.label.replace(/"/g, '&quot;')}" aria-label="Nom de l’ingrédient"></b><span class="smart-confidence ${item.estimateSource === 'verified' || item.estimateSource === 'verified-now' ? 'verified' : item.confidence < 55 ? 'low' : ''}">${item.estimateSource === 'verified-now' ? 'Pesé' : item.estimateSource === 'verified' ? `Vérifié · ${item.referenceCount}` : `${item.confidence}%`}</span></div>
+  if ($('smartConfidenceSummary')) {
+    const confirmed = state.results.filter((item) => ['verified', 'verified-now', 'manual'].includes(item.estimateSource)).length;
+    $('smartConfidenceSummary').className = `smart-confidence-summary ${confidence.stars < 4 ? 'warn' : ''}`;
+    $('smartConfidenceSummary').innerHTML = hasResults
+      ? `<b>${'★'.repeat(confidence.stars)}${'☆'.repeat(5-confidence.stars)} · ${confidence.label}</b><br><span>${confidence.score}% · ${confirmed}/${state.results.length} élément${state.results.length > 1 ? 's' : ''} confirmé${state.results.length > 1 ? 's' : ''} manuellement ou par une portion vérifiée. Les huiles et sauces invisibles restent à confirmer.</span>`
+      : '<b>Le scan peut être complété manuellement</b><br><span>Ajoute chaque aliment oublié, sa quantité et ses macros si nécessaire.</span>';
+  }
+  $('smartIngredientList').innerHTML = hasResults ? state.results.map((item, index) => {
+    const sourceClass = item.estimateSource === 'manual' ? 'manual' : item.estimateSource === 'verified' || item.estimateSource === 'verified-now' ? 'verified' : item.confidence < 55 ? 'low' : '';
+    const sourceLabel = item.estimateSource === 'manual' ? 'Ajout manuel' : item.estimateSource === 'verified-now' ? 'Pesé' : item.estimateSource === 'verified' ? `Vérifié · ${item.referenceCount}` : `${item.confidence}%`;
+    const sourceNote = item.estimateSource === 'manual'
+      ? item.manualCustomMacros ? 'Ajout manuel avec macros personnalisées.' : 'Ajout manuel relié à la base nutritionnelle locale.'
+      : item.estimateSource === 'verified' ? `Quantité calculée à partir de ${item.referenceCount} portion${item.referenceCount > 1 ? 's' : ''} réellement pesée${item.referenceCount > 1 ? 's' : ''}.`
+      : item.estimateSource === 'verified-now' ? 'Cette quantité a été enregistrée comme vérité de référence.'
+      : 'Estimation visuelle non vérifiée : corrige les grammes avec une balance avant de l’enregistrer comme référence.';
+    const verifyButton = Number(item.visualVolume) > 0
+      ? `<button class="smart-verify" type="button">${item.estimateSource === 'verified-now' ? '✓ Portion vérifiée' : '✓ Vérifier cette portion pesée'}</button>` : '';
+    return `<div class="smart-ingredient" data-smart-index="${index}">
+      <div class="smart-ingredient-head"><b>${index + 1}. <input class="smart-name" value="${escapeText(item.label)}" aria-label="Nom de l’ingrédient"></b><span class="smart-confidence ${sourceClass}">${sourceLabel}</span></div>
       <div class="smart-fields"><label>Quantité<input class="smart-grams" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" value="${item.grams}"><small>g</small></label><div><strong class="smart-kcal">${item.calories} kcal</strong><small class="smart-macros">${item.protein} P · ${item.carbs} G · ${item.fat} L</small></div></div>
-      <div class="smart-reference-actions"><button class="smart-verify" type="button">${item.estimateSource === 'verified-now' ? '✓ Portion vérifiée' : '✓ Vérifier cette portion pesée'}</button><button class="smart-remove" type="button">Retirer</button></div>
-      <p class="smart-source-note">${item.estimateSource === 'verified' ? `Quantité calculée à partir de ${item.referenceCount} portion${item.referenceCount > 1 ? 's' : ''} réellement pesée${item.referenceCount > 1 ? 's' : ''}.` : item.estimateSource === 'verified-now' ? 'Cette quantité a été enregistrée comme vérité de référence.' : 'Estimation visuelle non vérifiée : corrige les grammes avec une balance avant de l’enregistrer comme référence.'}</p>${item.matched ? '' : '<p class="smart-warning">Aliment non relié précisément à la base locale : macros génériques à corriger.</p>'}
-    </div>`).join('');
+      <div class="smart-reference-actions">${verifyButton}<button class="smart-remove" type="button">Retirer</button></div>
+      <p class="smart-source-note">${sourceNote}</p>${item.matched ? '' : '<p class="smart-warning">Aliment non relié précisément à la base locale : vérifie les macros.</p>'}
+    </div>`;
+  }).join('') : '<div class="smart-empty-detection">Le scanner n’a rien identifié avec assez de confiance. Tu peux quand même reconstruire le repas précisément sans relancer la photo.</div>';
   $('smartResults').classList.remove('hidden');
-  $('smartAddAllBtn').disabled = state.results.length === 0;
+  $('smartAddAllBtn').disabled = !hasResults;
+  if ($('smartSaveRecipeBtn')) $('smartSaveRecipeBtn').disabled = !hasResults;
+  if ($('smartSaveHabitBtn')) $('smartSaveHabitBtn').disabled = !hasResults;
   $('smartIngredientList').querySelectorAll('.smart-ingredient').forEach((element) => {
     const index = Number(element.dataset.smartIndex);
     element.querySelector('.smart-name').addEventListener('change', (event) => {
@@ -957,25 +1102,34 @@ function renderResults() {
       item.label = event.target.value.trim() || item.label;
       item.per100 = lookupFood(item.label);
       item.matched = item.per100.matched;
+      if (item.estimateSource === 'manual') item.confidence = item.matched ? 94 : 88;
       recalcItem(item);
-      renderResults();
+      renderResults({ scroll: false });
     });
-    element.querySelector('.smart-grams').addEventListener('input', (event) => {
-      state.results[index].grams = Math.max(1, localizedNumber(event.target.value) || 1);
+    const gramsInput = element.querySelector('.smart-grams');
+    gramsInput.addEventListener('input', (event) => {
+      const value = localizedNumber(event.target.value);
+      if (!Number.isFinite(value) || value <= 0) return;
+      state.results[index].grams = value;
       recalcItem(state.results[index]);
       const updated = totals();
       $('smartTotal').innerHTML = `<strong>${Math.round(updated.calories)} kcal</strong><span>${updated.protein.toFixed(1)} g protéines · ${updated.carbs.toFixed(1)} g glucides · ${updated.fat.toFixed(1)} g lipides</span>`;
       element.querySelector('.smart-kcal').textContent = `${state.results[index].calories} kcal`;
       element.querySelector('.smart-macros').textContent = `${state.results[index].protein} P · ${state.results[index].carbs} G · ${state.results[index].fat} L`;
     });
-    element.querySelector('.smart-verify').addEventListener('click', () => verifyResult(index).catch((error) => setStatus(`Impossible de vérifier cette portion : ${error.message || error}`, null, true)));
+    gramsInput.addEventListener('change', (event) => {
+      const value = localizedNumber(event.target.value);
+      state.results[index].grams = Number.isFinite(value) && value > 0 ? value : 1;
+      renderResults({ scroll: false });
+    });
+    element.querySelector('.smart-verify')?.addEventListener('click', () => verifyResult(index).catch((error) => setStatus(`Impossible de vérifier cette portion : ${error.message || error}`, null, true)));
     element.querySelector('.smart-remove').addEventListener('click', () => {
       state.results.splice(index, 1);
-      renderResults();
+      renderResults({ scroll: false });
     });
   });
-  if (state.results.length) setScanFlowStep('review');
-  $('smartResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setScanFlowStep('review');
+  if (scroll) $('smartResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function recalcItem(item) {
@@ -1010,8 +1164,15 @@ async function runAnalysis() {
     renderResults();
   } catch (error) {
     console.error(error);
+    const message = String(error?.message || error || 'Erreur inconnue');
     const details = error?.details ? ` (${error.details})` : '';
-    setStatus(`Le scanner avancé n’a pas terminé : ${error.message || error}${details}. Réessaie une fois; le scanner classique reste disponible plus bas.`, null, true);
+    if (/Aucun ingrédient distinct détecté/i.test(message)) {
+      state.results = [];
+      renderResults();
+      setStatus('Aucun aliment n’a été identifié avec assez de confiance. Ajoute manuellement les aliments oubliés sans reprendre la photo.', 100, true);
+    } else {
+      setStatus(`Le scanner avancé n’a pas terminé : ${message}${details}. Réessaie une fois; le scanner classique reste disponible plus bas.`, null, true);
+    }
   } finally {
     state.busy = false;
     $('smartAnalyzeBtn').disabled = false;
@@ -1053,6 +1214,14 @@ async function bind() {
   $('plateShape').addEventListener('change', updatePlateFormShape);
   $('savePlateProfileBtn').addEventListener('click', () => savePlateFromForm().catch((error) => setStatus(`Impossible d’enregistrer l’assiette : ${error.message || error}`, null, true)));
   $('smartAnalyzeBtn').addEventListener('click', runAnalysis);
+  renderManualFoodSuggestions();
+  $('smartManualAddBtn')?.addEventListener('click', () => setManualAddOpen($('smartManualAddPanel').classList.contains('hidden')));
+  $('smartManualCancelBtn')?.addEventListener('click', () => setManualAddOpen(false));
+  $('smartManualName')?.addEventListener('input', updateManualFoodPreview);
+  $('smartManualConfirmBtn')?.addEventListener('click', () => {
+    try { addManualFood(); }
+    catch (error) { setStatus(`Impossible d’ajouter l’aliment : ${error.message || error}`, null, true); }
+  });
   $('smartSaveRecipeBtn')?.addEventListener('click', () => savePersonalMeal('recipe'));
   $('smartSaveHabitBtn')?.addEventListener('click', () => savePersonalMeal('habit'));
   $('smartAddAllBtn').addEventListener('click', () => {
